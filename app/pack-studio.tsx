@@ -1,17 +1,19 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
-  Archive, ArrowRight, BarChart3, Boxes, Check, ChevronDown, CirclePlus, Filter, Grid2X2,
-  LandPlot, Layers3, Library, Minus, PackageOpen, Plus, Search, ShieldCheck, SlidersHorizontal,
-  Sparkles, UserRound, WandSparkles, X, Zap,
+  Archive, ArrowRight, BarChart3, Check, ChevronDown, ChevronLeft, ChevronRight, CirclePlus,
+  Filter, Grid2X2, LandPlot, Layers3, Library, Minus, PackageOpen, Plus, RotateCw,
+  Search, ShieldCheck, SkipForward, SlidersHorizontal, Sparkles, UserRound, WandSparkles, X, Zap,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Switch } from '@/components/ui/switch';
+import { getBoosterProducts, loadSet, loadSetCatalog, simulateBooster, type BoosterProduct, type MtgSetData, type MtgSetSummary } from '@/lib/mtgjson';
 
 type AppView = 'packs' | 'collection' | 'builder';
 type ViewMode = 'automatic' | 'stack' | 'grid';
-type Card = { name: string; rarity: string; slot: string; set: string; setName: string; image: string; foil: boolean; type: string; mana: string; color: string; tags: string[]; qty: number };
+type Card = { id?: string; name: string; rarity: string; slot: string; set: string; setName: string; image: string; foil: boolean; type: string; mana: string; color: string; tags: string[]; qty: number };
 
 const image = (name: string) => `https://api.scryfall.com/cards/named?format=image&version=normal&exact=${encodeURIComponent(name)}`;
 const cards: Card[] = [
@@ -27,42 +29,135 @@ const cards: Card[] = [
   { name: 'Cultivate', rarity: 'Infrecuente', slot: 'Ramp', set: 'M21 · 177', setName: 'Core Set 2021', image: image('Cultivate'), foil: false, type: 'Sorcery', mana: '2G', color: 'G', tags: ['ramp', 'land'], qty: 3 },
 ];
 
-const openingCards = cards.slice(0, 5);
-
 export function PackStudio({ userName, signInPath = '/signin-with-chatgpt?return_to=%2F', staticDemo = false }: { userName?: string | null; signInPath?: string; staticDemo?: boolean }) {
   const [view, setView] = useState<AppView>('packs');
-  const [viewMode, setViewMode] = useState<ViewMode>('stack');
+  const [viewMode, setViewMode] = useState<ViewMode>('automatic');
   const [opening, setOpening] = useState(false);
   const [opened, setOpened] = useState(12);
-  const [saved, setSaved] = useState(false);
+  const [animationEnabled, setAnimationEnabled] = useState(true);
   const [search, setSearch] = useState('');
   const [collection, setCollection] = useState(() => Object.fromEntries(cards.map((card) => [card.name, card.qty])));
+  const [libraryCards, setLibraryCards] = useState<Card[]>(cards);
   const [deck, setDeck] = useState<Record<string, number>>({ 'Overlord of the Hauntwoods': 1, 'Sol Ring': 1, 'Arcane Signet': 1, Cultivate: 1, 'Command Tower': 1, 'Beast Within': 1 });
   const [notice, setNotice] = useState<string | null>(null);
+  const [sets, setSets] = useState<MtgSetSummary[]>([]);
+  const [selectedSetCode, setSelectedSetCode] = useState('DSK');
+  const [selectedSet, setSelectedSet] = useState<MtgSetData | null>(null);
+  const [products, setProducts] = useState<BoosterProduct[]>([]);
+  const [selectedProductCode, setSelectedProductCode] = useState('collector');
+  const [dataLoading, setDataLoading] = useState(true);
+  const [dataError, setDataError] = useState<string | null>(null);
+  const [packCards, setPackCards] = useState<Card[]>([]);
+  const [activeCard, setActiveCard] = useState(0);
+  const [rotatedCards, setRotatedCards] = useState<Set<string>>(new Set());
+  const [savedCards, setSavedCards] = useState<Set<string>>(new Set());
+  const [history, setHistory] = useState<string[]>(['DSK · Collector', 'WOE · Draft', 'MH3 · Play']);
 
-  const filteredCards = useMemo(() => cards.filter((card) => `${card.name} ${card.setName} ${card.type}`.toLowerCase().includes(search.toLowerCase())), [search]);
+  const filteredCards = useMemo(() => libraryCards.filter((card) => `${card.name} ${card.setName} ${card.type}`.toLowerCase().includes(search.toLowerCase())), [libraryCards, search]);
   const deckCount = Object.values(deck).reduce((sum, qty) => sum + qty, 0);
+  const selectedProduct = products.find((product) => product.code === selectedProductCode) ?? null;
+  const saved = packCards.length > 0 && packCards.every((card) => savedCards.has(card.id ?? card.name));
+
+  useEffect(() => {
+    let cancelled = false;
+    loadSetCatalog()
+      .then((catalog) => { if (!cancelled) setSets(catalog); })
+      .catch(() => { if (!cancelled) setDataError('No se pudo cargar el catálogo de ediciones.'); });
+    return () => { cancelled = true; };
+  }, []);
+
+  useEffect(() => {
+    const preference = window.localStorage.getItem('vaultforge:pack-animation');
+    if (preference !== null) setAnimationEnabled(preference === 'true');
+  }, []);
+
+  useEffect(() => {
+    window.localStorage.setItem('vaultforge:pack-animation', String(animationEnabled));
+  }, [animationEnabled]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setDataLoading(true);
+    setDataError(null);
+    setPackCards([]);
+    loadSet(selectedSetCode)
+      .then((set) => {
+        if (cancelled) return;
+        const available = getBoosterProducts(set);
+        setSelectedSet(set);
+        setProducts(available);
+        setSelectedProductCode(available.find((product) => product.code === 'collector')?.code ?? available[0]?.code ?? '');
+        if (!available.length) setDataError('Esta edición no tiene productos simulables en MTGJSON.');
+      })
+      .catch(() => { if (!cancelled) setDataError('No se pudieron cargar los datos de esta edición.'); })
+      .finally(() => { if (!cancelled) setDataLoading(false); });
+    return () => { cancelled = true; };
+  }, [selectedSetCode]);
 
   function flash(message: string) { setNotice(message); window.setTimeout(() => setNotice(null), 2200); }
-  function openPack() { setOpening(true); setSaved(false); window.setTimeout(() => { setOpened((value) => value + 1); setOpening(false); }, 650); }
-  async function savePack() {
-    const packCards = Array.from({ length: 15 }, (_, index) => openingCards[index % openingCards.length]);
+  function openPack() {
+    if (!selectedSet || !selectedProductCode) return;
+    try {
+      const generated = simulateBooster(selectedSet, selectedProductCode);
+      setPackCards(generated);
+      setActiveCard(0);
+      setSavedCards(new Set());
+      setRotatedCards(new Set(generated.map((card) => card.id ?? card.name)));
+      setViewMode('automatic');
+      setOpening(animationEnabled);
+      const historyLabel = `${selectedSet.code} · ${selectedProduct?.subtype ?? selectedProductCode}`;
+      setHistory((current) => [historyLabel, ...current.filter((item) => item !== historyLabel)].slice(0, 3));
+      window.setTimeout(() => {
+        setOpened((value) => value + 1);
+        setOpening(false);
+      }, animationEnabled ? 1250 : 0);
+    } catch (error) {
+      flash(error instanceof Error ? error.message : 'No se pudo generar el sobre.');
+    }
+  }
+  async function saveCards(cardsToSave: Card[]) {
+    const pending = cardsToSave.filter((card) => !savedCards.has(card.id ?? card.name));
+    if (!pending.length) return true;
     if (!staticDemo) {
       try {
         const response = await fetch('/api/collection', {
           method: 'POST',
           headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({ cards: packCards }),
+          body: JSON.stringify({ cards: pending }),
         });
         if (response.status === 401) { flash('Inicia sesión para guardar tu colección'); return; }
         if (!response.ok) throw new Error('save_failed');
       } catch {
         flash('No se pudo sincronizar; inténtalo de nuevo');
-        return;
+        return false;
       }
     }
-    setCollection((current) => { const next = { ...current }; openingCards.forEach((card) => { next[card.name] = (next[card.name] ?? 0) + 1; }); return next; });
-    setSaved(true); flash(staticDemo ? '15 cartas añadidas a la colección de demostración' : '15 cartas añadidas a tu colección');
+    setCollection((current) => { const next = { ...current }; pending.forEach((card) => { next[card.name] = (next[card.name] ?? 0) + 1; }); return next; });
+    setLibraryCards((current) => {
+      const known = new Set(current.map((card) => `${card.name}:${card.set}:${card.foil}`));
+      return [...pending.filter((card) => !known.has(`${card.name}:${card.set}:${card.foil}`)), ...current];
+    });
+    setSavedCards((current) => new Set([...current, ...pending.map((card) => card.id ?? card.name)]));
+    return true;
+  }
+  async function savePack() {
+    const ok = await saveCards(packCards);
+    if (ok) flash(`${packCards.length} cartas añadidas a ${staticDemo ? 'la colección de demostración' : 'tu colección'}`);
+  }
+  async function addCurrentAndNext() {
+    const current = packCards[activeCard];
+    if (!current) return;
+    const ok = await saveCards([current]);
+    if (ok) {
+      if (activeCard < packCards.length - 1) setActiveCard((value) => value + 1);
+      else flash('Sobre completado: todas las cartas revisadas');
+    }
+  }
+  function nextCard() { setActiveCard((value) => Math.min(packCards.length - 1, value + 1)); }
+  function previousCard() { setActiveCard((value) => Math.max(0, value - 1)); }
+  function toggleRotated(card: Card) {
+    const key = card.id ?? card.name;
+    setRotatedCards((current) => { const next = new Set(current); if (next.has(key)) next.delete(key); else next.add(key); return next; });
   }
   function addToDeck(card: Card) { setDeck((current) => ({ ...current, [card.name]: (current[card.name] ?? 0) + 1 })); flash(`${card.name} añadida al mazo`); }
 
@@ -88,7 +183,7 @@ export function PackStudio({ userName, signInPath = '/signin-with-chatgpt?return
         <div className="mobile-nav md:hidden"><NavButton active={view === 'packs'} onClick={() => setView('packs')} icon={<PackageOpen />}>Sobres</NavButton><NavButton active={view === 'collection'} onClick={() => setView('collection')} icon={<Library />}>Colección</NavButton><NavButton active={view === 'builder'} onClick={() => setView('builder')} icon={<Layers3 />}>Mazos</NavButton></div>
       </header>
 
-      {view === 'packs' && <PackView viewMode={viewMode} setViewMode={setViewMode} opening={opening} opened={opened} openPack={openPack} saved={saved} savePack={savePack} goBuilder={() => setView('builder')} />}
+      {view === 'packs' && <PackView viewMode={viewMode} setViewMode={setViewMode} opening={opening} opened={opened} openPack={openPack} saved={saved} savePack={savePack} goBuilder={() => setView('builder')} sets={sets} selectedSetCode={selectedSetCode} setSelectedSetCode={setSelectedSetCode} selectedSet={selectedSet} products={products} selectedProductCode={selectedProductCode} setSelectedProductCode={setSelectedProductCode} selectedProduct={selectedProduct} dataLoading={dataLoading} dataError={dataError} animationEnabled={animationEnabled} setAnimationEnabled={setAnimationEnabled} packCards={packCards} activeCard={activeCard} setActiveCard={setActiveCard} rotatedCards={rotatedCards} toggleRotated={toggleRotated} savedCards={savedCards} addCurrentAndNext={addCurrentAndNext} nextCard={nextCard} previousCard={previousCard} history={history} collectionTotal={Object.values(collection).reduce((sum, qty) => sum + qty, 0)} />}
       {view === 'collection' && <CollectionView search={search} setSearch={setSearch} cards={filteredCards} collection={collection} setCollection={setCollection} addToDeck={addToDeck} goBuilder={() => setView('builder')} />}
       {view === 'builder' && <BuilderView search={search} setSearch={setSearch} cards={filteredCards} deck={deck} setDeck={setDeck} deckCount={deckCount} addToDeck={addToDeck} />}
 
@@ -101,31 +196,60 @@ function NavButton({ active, onClick, icon, children }: { active: boolean; onCli
   return <button className={`nav-link ${active ? 'nav-link-active' : ''}`} onClick={onClick}>{icon}{children}</button>;
 }
 
-function PackView({ viewMode, setViewMode, opening, opened, openPack, saved, savePack, goBuilder }: { viewMode: ViewMode; setViewMode: (mode: ViewMode) => void; opening: boolean; opened: number; openPack: () => void; saved: boolean; savePack: () => void | Promise<void>; goBuilder: () => void }) {
+type PackViewProps = {
+  viewMode: ViewMode; setViewMode: (mode: ViewMode) => void; opening: boolean; opened: number; openPack: () => void;
+  saved: boolean; savePack: () => void | Promise<void>; goBuilder: () => void; sets: MtgSetSummary[];
+  selectedSetCode: string; setSelectedSetCode: (code: string) => void; selectedSet: MtgSetData | null;
+  products: BoosterProduct[]; selectedProductCode: string; setSelectedProductCode: (code: string) => void;
+  selectedProduct: BoosterProduct | null; dataLoading: boolean; dataError: string | null;
+  animationEnabled: boolean; setAnimationEnabled: (enabled: boolean) => void; packCards: Card[]; activeCard: number;
+  setActiveCard: (index: number) => void; rotatedCards: Set<string>; toggleRotated: (card: Card) => void;
+  savedCards: Set<string>; addCurrentAndNext: () => void | Promise<void>; nextCard: () => void; previousCard: () => void;
+  history: string[]; collectionTotal: number;
+};
+
+function PackView({ viewMode, setViewMode, opening, opened, openPack, saved, savePack, goBuilder, sets, selectedSetCode, setSelectedSetCode, selectedSet, products, selectedProductCode, setSelectedProductCode, selectedProduct, dataLoading, dataError, animationEnabled, setAnimationEnabled, packCards, activeCard, setActiveCard, rotatedCards, toggleRotated, savedCards, addCurrentAndNext, nextCard, previousCard, history, collectionTotal }: PackViewProps) {
+  const currentCard = packCards[activeCard];
+  const visibleCards = viewMode === 'automatic' ? (currentCard ? [currentCard] : []) : packCards;
+  const foilCount = packCards.filter((card) => card.foil).length;
   return <div className="mx-auto grid max-w-[1600px] grid-cols-1 gap-0 xl:grid-cols-[300px_minmax(0,1fr)_300px]">
     <aside className="border-white/8 p-5 xl:min-h-[calc(100vh-64px)] xl:border-r xl:p-6">
       <div className="mb-6 flex items-start justify-between"><div><p className="eyebrow">Simulador</p><h1 className="mt-1 font-display text-2xl font-semibold">Abrir producto</h1></div><span className="rounded-full border border-emerald-300/20 bg-emerald-300/8 px-2 py-1 text-[10px] font-bold tracking-wider text-emerald-300">ODDS REALES</span></div>
       <div className="space-y-5">
-        <label className="control-label">Edición<button className="select-like" type="button"><span><strong>Duskmourn</strong><small>House of Horror · DSK</small></span><ChevronDown /></button></label>
-        <label className="control-label">Producto<button className="select-like" type="button"><span><strong>Collector Booster</strong><small>15 cartas · 5 foil</small></span><ChevronDown /></button></label>
-        <label className="control-label">Cantidad<div className="grid grid-cols-2 gap-2"><button className="quantity-active" type="button"><PackageOpen />1 sobre</button><button className="quantity-button" type="button"><Boxes />Caja · 12</button></div></label>
+        <label className="control-label">Edición<div className="native-select-wrap"><select value={selectedSetCode} onChange={(event) => setSelectedSetCode(event.target.value)} aria-label="Edición de Magic">{sets.length === 0 && <option value="DSK">Cargando ediciones…</option>}{sets.map((set) => <option key={set.code} value={set.code}>{set.name} · {set.code} ({set.releaseDate?.slice(0, 4) ?? '—'})</option>)}</select><ChevronDown /></div></label>
+        <label className="control-label">Producto<div className="native-select-wrap"><select value={selectedProductCode} onChange={(event) => setSelectedProductCode(event.target.value)} disabled={dataLoading || products.length === 0} aria-label="Producto sellado">{dataLoading && <option value={selectedProductCode}>Cargando productos…</option>}{!dataLoading && products.map((product) => <option key={product.code} value={product.code}>{product.name} · {product.cardCount} cartas</option>)}</select><ChevronDown /></div></label>
+        <div className="animation-toggle"><div><strong>Animación de apertura</strong><span>Desactívala para abrir al instante</span></div><Switch checked={animationEnabled} onCheckedChange={setAnimationEnabled} aria-label="Activar animación de apertura" /></div>
       </div>
-      <Button onClick={openPack} disabled={opening} className="mt-7 h-12 w-full bg-amber-300 text-sm font-bold text-[#17150e] shadow-[0_12px_30px_-12px_rgba(252,211,77,.75)] hover:bg-amber-200"><Sparkles />{opening ? 'Abriendo…' : 'Abrir collector booster'}</Button>
-      <p className="mt-3 text-center text-xs leading-relaxed text-stone-500">La colación replica el orden y las probabilidades del producto físico.</p>
-      <div className="mt-8 border-t border-white/7 pt-5"><p className="eyebrow">Historial reciente</p>{['DSK · Collector', 'WOE · Draft', 'MH3 · Play'].map((item, index) => <button key={item} className="history-row"><span>{item}</span><small>hace {index * 4 + 2} min</small></button>)}</div>
+      <Button onClick={openPack} disabled={opening || dataLoading || !selectedProduct} className="mt-7 h-12 w-full bg-amber-300 text-sm font-bold text-[#17150e] shadow-[0_12px_30px_-12px_rgba(252,211,77,.75)] hover:bg-amber-200"><Sparkles />{opening ? 'Abriendo…' : dataLoading ? 'Cargando datos…' : `Abrir ${selectedProduct?.name ?? 'sobre'}`}</Button>
+      {dataError ? <p className="mt-3 text-center text-xs leading-relaxed text-red-300">{dataError}</p> : <p className="mt-3 text-center text-xs leading-relaxed text-stone-500">Slots, rarezas, foil y probabilidades se generan desde la colación publicada del producto.</p>}
+      <div className="mt-8 border-t border-white/7 pt-5"><p className="eyebrow">Historial reciente</p>{history.map((item, index) => <div key={item} className="history-row"><span>{item}</span><small>{index === 0 && packCards.length ? 'ahora' : `hace ${index * 4 + 2} min`}</small></div>)}</div>
     </aside>
 
     <section className="min-w-0 border-y border-white/8 px-4 py-6 sm:px-8 xl:border-y-0 xl:py-8">
-      <div className="mb-7 flex flex-wrap items-end justify-between gap-4"><div><p className="eyebrow">Apertura #{opened}</p><h2 className="mt-1 font-display text-3xl font-semibold tracking-tight">Collector Booster · Duskmourn</h2><p className="mt-1 text-sm text-stone-500">15 cartas · orden de impresión conservado</p></div><div className="view-switcher" aria-label="Modo de visualización"><button onClick={() => setViewMode('automatic')} data-active={viewMode === 'automatic'}><WandSparkles />Automatic</button><button onClick={() => setViewMode('stack')} data-active={viewMode === 'stack'}><Layers3 />Card stack</button><button onClick={() => setViewMode('grid')} data-active={viewMode === 'grid'}><Grid2X2 />Card grid</button></div></div>
-      <div className={`pack-stage pack-stage-${viewMode} ${opening ? 'is-opening' : ''}`}><div className="stage-glow" /><div className="cards-shell">{openingCards.map((card, index) => <article className={`mtg-card ${card.foil ? 'is-foil' : ''}`} key={card.name} style={{ '--card-index': index } as React.CSSProperties}><img src={card.image} alt={card.name} />{card.foil && <span className="foil-sheen" aria-hidden="true" />}</article>)}</div><div className="stage-caption"><div><span className="rarity-gem" /><strong>{openingCards[0].name}</strong></div><span>{openingCards[0].slot} · {openingCards[0].set}</span></div></div>
-      <div className="mt-5 flex flex-wrap items-center justify-between gap-3 text-xs text-stone-500"><p><strong className="text-stone-300">5 de 15</strong> cartas destacadas · el prototipo conserva los 15 slots</p><p>Arrastra o usa las flechas para explorar el stack</p></div>
+      <div className="mb-7 flex flex-wrap items-end justify-between gap-4"><div><p className="eyebrow">Apertura #{opened}</p><h2 className="mt-1 font-display text-3xl font-semibold tracking-tight">{selectedProduct?.name ?? 'Elige un producto'} · {selectedSet?.name ?? selectedSetCode}</h2><p className="mt-1 text-sm text-stone-500">{packCards.length || selectedProduct?.cardCount || 0} cartas · orden de slots conservado</p></div><div className="view-switcher" aria-label="Modo de visualización"><button onClick={() => setViewMode('automatic')} data-active={viewMode === 'automatic'}><WandSparkles />Automatic</button><button onClick={() => setViewMode('stack')} data-active={viewMode === 'stack'}><Layers3 />Card stack</button><button onClick={() => setViewMode('grid')} data-active={viewMode === 'grid'}><Grid2X2 />Card grid</button></div></div>
+      <div className={`pack-stage pack-stage-${viewMode} ${opening ? 'is-opening' : ''}`}>
+        <div className="stage-glow" />
+        {opening && <div className="booster-opening" aria-live="polite"><div className="booster-wrapper"><span className="tear-strip" /><PackageOpen /><small>{selectedSetCode}</small><strong>{selectedProduct?.name}</strong></div><p>Abriendo y repartiendo los slots reales…</p></div>}
+        {!opening && packCards.length === 0 && <div className="empty-pack-stage"><PackageOpen /><strong>Tu sobre aparecerá aquí</strong><span>Selecciona una edición y un producto para generar cartas reales.</span></div>}
+        {!opening && packCards.length > 0 && <div className="cards-shell">{visibleCards.map((card, index) => {
+          const key = card.id ?? `${card.name}-${index}`;
+          const actualIndex = viewMode === 'automatic' ? activeCard : index;
+          const rotated = rotatedCards.has(key);
+          const isSaved = savedCards.has(key);
+          return <article role="button" tabIndex={0} aria-label={`${rotated ? 'Enderezar' : 'Girar'} ${card.name}`} onClick={() => toggleRotated(card)} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') toggleRotated(card); }} className={`mtg-card ${card.foil ? 'is-foil' : ''} ${rotated ? 'is-tapped' : ''} ${isSaved ? 'is-collected' : ''}`} key={key} style={{ '--card-index': actualIndex, '--card-center': Math.floor(packCards.length / 2) } as React.CSSProperties}><img src={card.image} alt={card.name} />{card.foil && <span className="foil-sheen" aria-hidden="true" />}{isSaved && <span className="collected-mark"><Check />Colección</span>}</article>;
+        })}</div>}
+        {!opening && currentCard && <div className="stage-caption"><div><span className="rarity-gem" /><strong>{currentCard.name}</strong></div><span>{currentCard.slot} · {currentCard.set}{currentCard.foil ? ' · FOIL' : ''}</span></div>}
+        {!opening && viewMode === 'automatic' && currentCard && <div className="automatic-controls"><button onClick={previousCard} disabled={activeCard === 0} aria-label="Carta anterior"><ChevronLeft /></button><span>{activeCard + 1} / {packCards.length}</span><button onClick={nextCard} disabled={activeCard === packCards.length - 1} aria-label="Carta siguiente"><ChevronRight /></button></div>}
+      </div>
+      {packCards.length > 0 && <div className="reveal-actions"><Button variant="outline" onClick={() => currentCard && toggleRotated(currentCard)}><RotateCw />{currentCard && rotatedCards.has(currentCard.id ?? currentCard.name) ? 'Enderezar' : 'Girar carta'}</Button>{viewMode === 'automatic' && <><Button onClick={addCurrentAndNext} disabled={!currentCard || savedCards.has(currentCard.id ?? currentCard.name)} className="bg-amber-300 font-bold text-[#17150e] hover:bg-amber-200"><CirclePlus />{currentCard && savedCards.has(currentCard.id ?? currentCard.name) ? 'Añadida' : 'Añadir y siguiente'}</Button><Button variant="ghost" onClick={nextCard} disabled={activeCard === packCards.length - 1}><SkipForward />Omitir</Button></>}</div>}
+      <div className="mt-5 flex flex-wrap items-center justify-between gap-3 text-xs text-stone-500"><p><strong className="text-stone-300">{packCards.length || selectedProduct?.cardCount || 0} cartas</strong>{packCards.length ? ` · ${foilCount} foil en esta apertura` : ' · esperando apertura'}</p><p>Haz clic en una carta para girarla 90°</p></div>
     </section>
 
     <aside className="p-5 xl:min-h-[calc(100vh-64px)] xl:border-l xl:border-white/8 xl:p-6">
       <div className="flex items-center justify-between"><div><p className="eyebrow">Tu cuenta</p><h2 className="mt-1 font-display text-xl font-semibold">Colección</h2></div><Archive className="size-5 text-stone-500" /></div>
-      <div className="mt-5 rounded-2xl border border-white/8 bg-white/[.025] p-4"><div className="flex items-center justify-between"><span className="text-sm text-stone-400">Cartas guardadas</span><strong className="font-display text-2xl">{saved ? 263 : 248}</strong></div><div className="mt-4 h-1.5 overflow-hidden rounded-full bg-white/6"><span className="block h-full w-[68%] rounded-full bg-amber-300" /></div><div className="mt-2 flex justify-between text-[11px] text-stone-500"><span>{saved ? 201 : 196} únicas</span><span>{saved ? 17 : 12} foil</span></div></div>
-      <div className="mt-6 space-y-3"><div className="flex items-center justify-between"><h3 className="text-sm font-semibold">Contenido del sobre</h3><span className="text-xs text-stone-500">15 slots</span></div>{openingCards.slice(0, 3).map((card, index) => <div key={card.name} className="mini-card-row"><img src={card.image} alt="" /><div className="min-w-0 flex-1"><strong>{card.name}</strong><span>{card.rarity} · {card.set}</span></div><span className="quantity-pill">+{index === 2 ? 2 : 1}</span></div>)}</div>
-      <div className="mt-7 rounded-2xl border border-emerald-300/12 bg-emerald-300/[.035] p-4"><div className="flex items-center gap-2 text-sm font-semibold text-emerald-200"><Sparkles className="size-4" /> Siguiente paso</div><p className="mt-2 text-xs leading-relaxed text-stone-400">Guarda este sobre y empieza un mazo Commander con las cartas compatibles.</p><Button onClick={savePack} disabled={saved} variant="outline" className="mt-4 w-full border-emerald-300/20 bg-emerald-300/5 text-emerald-100">{saved ? <><Check />Guardadas</> : 'Guardar 15 cartas'}</Button>{saved && <button onClick={goBuilder} className="mt-3 flex w-full items-center justify-center gap-2 text-xs font-semibold text-amber-200">Ir al constructor <ArrowRight className="size-3" /></button>}</div>
+      <div className="mt-5 rounded-2xl border border-white/8 bg-white/[.025] p-4"><div className="flex items-center justify-between"><span className="text-sm text-stone-400">Cartas guardadas</span><strong className="font-display text-2xl">{collectionTotal}</strong></div><div className="mt-4 h-1.5 overflow-hidden rounded-full bg-white/6"><span className="block h-full w-[68%] rounded-full bg-amber-300" /></div><div className="mt-2 flex justify-between text-[11px] text-stone-500"><span>{savedCards.size} de este sobre</span><span>{foilCount} foil abiertas</span></div></div>
+      <div className="mt-6 space-y-3"><div className="flex items-center justify-between"><h3 className="text-sm font-semibold">Contenido del sobre</h3><span className="text-xs text-stone-500">{packCards.length} slots</span></div><div className="pack-slot-list">{packCards.map((card, index) => <button onClick={() => { setViewMode('automatic'); setActiveCard(index); }} key={card.id ?? `${card.name}-${index}`} className={`mini-card-row ${index === activeCard ? 'is-active' : ''}`}><img src={card.image} alt="" /><div className="min-w-0 flex-1"><strong>{card.name}</strong><span>{card.slot} · {card.rarity}</span></div>{savedCards.has(card.id ?? card.name) && <Check className="size-3 text-emerald-300" />}</button>)}</div></div>
+      <div className="mt-7 rounded-2xl border border-emerald-300/12 bg-emerald-300/[.035] p-4"><div className="flex items-center gap-2 text-sm font-semibold text-emerald-200"><Sparkles className="size-4" /> Siguiente paso</div><p className="mt-2 text-xs leading-relaxed text-stone-400">Añade las cartas una por una en Automatic o guarda todo el sobre.</p><Button onClick={savePack} disabled={saved || packCards.length === 0} variant="outline" className="mt-4 w-full border-emerald-300/20 bg-emerald-300/5 text-emerald-100">{saved ? <><Check />Guardadas</> : `Guardar ${Math.max(0, packCards.length - savedCards.size)} cartas`}</Button>{saved && <button onClick={goBuilder} className="mt-3 flex w-full items-center justify-center gap-2 text-xs font-semibold text-amber-200">Ir al constructor <ArrowRight className="size-3" /></button>}</div>
     </aside>
   </div>;
 }

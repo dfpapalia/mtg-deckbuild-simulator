@@ -49,7 +49,7 @@ export async function POST(request: Request) {
   await ensureCollectionSchema();
 
   const body = await request.json() as { cards?: IncomingCard[] };
-  if (!Array.isArray(body.cards) || body.cards.length === 0 || body.cards.length > 36) {
+  if (!Array.isArray(body.cards) || body.cards.length === 0 || body.cards.length > 120) {
     return Response.json({ error: 'invalid_cards' }, { status: 400 });
   }
 
