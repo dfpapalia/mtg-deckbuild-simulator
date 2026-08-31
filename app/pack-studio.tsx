@@ -2,17 +2,18 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
-  Archive, ArrowRight, BarChart3, Check, ChevronDown, ChevronLeft, ChevronRight, CirclePlus,
-  Eye, EyeOff, Filter, Grid2X2, LandPlot, Layers3, Library, List, Minus, Move, PackageOpen, Plus, RotateCw, Scissors,
-  Search, ShieldCheck, SkipForward, SlidersHorizontal, Sparkles, UserRound, WandSparkles, X, Zap, ZoomIn,
+  Archive, ArrowRight, Ban, BarChart3, Check, ChevronDown, ChevronLeft, ChevronRight, CirclePlus, Crown,
+  Eye, EyeOff, Filter, Grid2X2, Hand, Heart, LandPlot, Layers3, Library, List, Minus, Move, PackageOpen, Plus, RotateCcw, RotateCw, Scissors,
+  Search, ShieldCheck, Shuffle, SkipForward, Sparkles, Skull, Swords, UserRound, WandSparkles, X, Zap, ZoomIn,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { getBoosterProducts, loadSet, loadSetCatalog, simulateBooster, type BoosterProduct, type MtgSetData, type MtgSetSummary } from '@/lib/mtgjson';
 
-type AppView = 'packs' | 'collection' | 'builder';
+type AppView = 'packs' | 'collection' | 'builder' | 'playtest';
 type ViewMode = 'automatic' | 'stack' | 'grid';
+type DeckFormat = 'commander' | 'standard' | 'modern' | 'legacy' | 'pauper' | 'limited';
 type Card = { id?: string; uuid?: string; name: string; rarity: string; slot: string; set: string; setName: string; image: string; foil: boolean; type: string; mana: string; color: string; tags: string[]; types?: string[]; subtypes?: string[]; supertypes?: string[]; manaValue?: number; power?: string; toughness?: string; qty: number };
 
 const image = (name: string) => `https://api.scryfall.com/cards/named?format=image&version=normal&exact=${encodeURIComponent(name)}`;
@@ -40,7 +41,8 @@ export function PackStudio({ userName, signInPath = '/signin-with-chatgpt?return
   const [search, setSearch] = useState('');
   const [collection, setCollection] = useState(() => Object.fromEntries(cards.map((card) => [collectionIdentity(card), card.qty])));
   const [libraryCards, setLibraryCards] = useState<Card[]>(cards);
-  const [deck, setDeck] = useState<Record<string, number>>({ 'Overlord of the Hauntwoods': 1, 'Sol Ring': 1, 'Arcane Signet': 1, Cultivate: 1, 'Command Tower': 1, 'Beast Within': 1 });
+  const [deck, setDeck] = useState<Record<string, number>>({ 'Kaito, Bane of Nightmares': 1, 'Overlord of the Hauntwoods': 1, 'Unholy Annex // Ritual Chamber': 1, 'Enduring Curiosity': 1, 'Fear of Missing Out': 1, 'Sol Ring': 1, 'Arcane Signet': 1, Cultivate: 1, 'Command Tower': 31, 'Beast Within': 1 });
+  const [deckFormat, setDeckFormat] = useState<DeckFormat>('commander');
   const [notice, setNotice] = useState<string | null>(null);
   const [sets, setSets] = useState<MtgSetSummary[]>([]);
   const [selectedSetCode, setSelectedSetCode] = useState('DSK');
@@ -55,7 +57,6 @@ export function PackStudio({ userName, signInPath = '/signin-with-chatgpt?return
   const [savedCards, setSavedCards] = useState<Set<string>>(new Set());
   const [history, setHistory] = useState<string[]>(['DSK · Collector', 'WOE · Draft', 'MH3 · Play']);
 
-  const filteredCards = useMemo(() => libraryCards.filter((card) => `${card.name} ${card.setName} ${card.type}`.toLowerCase().includes(search.toLowerCase())), [libraryCards, search]);
   const deckCount = Object.values(deck).reduce((sum, qty) => sum + qty, 0);
   const selectedProduct = products.find((product) => product.code === selectedProductCode) ?? null;
   const saved = packCards.length > 0 && packCards.every((card) => savedCards.has(card.id ?? card.name));
@@ -85,6 +86,25 @@ export function PackStudio({ userName, signInPath = '/signin-with-chatgpt?return
   useEffect(() => {
     window.localStorage.setItem('vaultforge:view-mode', viewMode);
   }, [viewMode]);
+
+  useEffect(() => {
+    const savedFormat = window.localStorage.getItem('vaultforge:deck-format') as DeckFormat | null;
+    if (savedFormat && ['commander', 'standard', 'modern', 'legacy', 'pauper', 'limited'].includes(savedFormat)) setDeckFormat(savedFormat);
+  }, []);
+
+  useEffect(() => {
+    window.localStorage.setItem('vaultforge:deck-format', deckFormat);
+  }, [deckFormat]);
+
+  useEffect(() => {
+    const savedDeck = window.localStorage.getItem('vaultforge:deck');
+    if (!savedDeck) return;
+    try { setDeck(JSON.parse(savedDeck) as Record<string, number>); } catch { /* Conserva el mazo inicial si el dato local está dañado. */ }
+  }, []);
+
+  useEffect(() => {
+    window.localStorage.setItem('vaultforge:deck', JSON.stringify(deck));
+  }, [deck]);
 
   useEffect(() => {
     let cancelled = false;
@@ -182,18 +202,20 @@ export function PackStudio({ userName, signInPath = '/signin-with-chatgpt?return
             <NavButton active={view === 'packs'} onClick={() => setView('packs')} icon={<PackageOpen />}>Abrir sobres</NavButton>
             <NavButton active={view === 'collection'} onClick={() => setView('collection')} icon={<Library />}>Colección</NavButton>
             <NavButton active={view === 'builder'} onClick={() => setView('builder')} icon={<Layers3 />}>Mazos</NavButton>
+            <NavButton active={view === 'playtest'} onClick={() => setView('playtest')} icon={<Swords />}>Prueba tu mazo</NavButton>
           </nav>
           <div className="ml-auto flex items-center gap-2">
             <Button variant="ghost" onClick={() => setView('collection')} className="hidden text-stone-300 sm:inline-flex"><Search /> Buscar cartas</Button>
             {userName ? <Button variant="outline" className="border-white/10 bg-white/4 text-stone-100"><span className="avatar-dot">{userName.charAt(0)}</span>{userName}</Button> : <Button nativeButton={false} render={<a href={signInPath} target="_top" />} variant="outline" className="border-white/10 bg-white/4 text-stone-100"><UserRound /> Entrar</Button>}
           </div>
         </div>
-        <div className="mobile-nav md:hidden"><NavButton active={view === 'packs'} onClick={() => setView('packs')} icon={<PackageOpen />}>Sobres</NavButton><NavButton active={view === 'collection'} onClick={() => setView('collection')} icon={<Library />}>Colección</NavButton><NavButton active={view === 'builder'} onClick={() => setView('builder')} icon={<Layers3 />}>Mazos</NavButton></div>
+        <div className="mobile-nav md:hidden"><NavButton active={view === 'packs'} onClick={() => setView('packs')} icon={<PackageOpen />}>Sobres</NavButton><NavButton active={view === 'collection'} onClick={() => setView('collection')} icon={<Library />}>Colección</NavButton><NavButton active={view === 'builder'} onClick={() => setView('builder')} icon={<Layers3 />}>Mazos</NavButton><NavButton active={view === 'playtest'} onClick={() => setView('playtest')} icon={<Swords />}>Probar</NavButton></div>
       </header>
 
       {view === 'packs' && <PackView viewMode={viewMode} setViewMode={setViewMode} opening={opening} opened={opened} openPack={openPack} saved={saved} savePack={savePack} goBuilder={() => setView('builder')} sets={sets} selectedSetCode={selectedSetCode} setSelectedSetCode={setSelectedSetCode} selectedSet={selectedSet} products={products} selectedProductCode={selectedProductCode} setSelectedProductCode={setSelectedProductCode} selectedProduct={selectedProduct} dataLoading={dataLoading} dataError={dataError} animationEnabled={animationEnabled} setAnimationEnabled={setAnimationEnabled} packCards={packCards} activeCard={activeCard} setActiveCard={setActiveCard} faceDownCards={faceDownCards} toggleCardFace={toggleCardFace} revealAllCards={revealAllCards} savedCards={savedCards} addCurrentAndNext={addCurrentAndNext} history={history} collectionTotal={Object.values(collection).reduce((sum, qty) => sum + qty, 0)} />}
       {view === 'collection' && <CollectionView search={search} setSearch={setSearch} cards={libraryCards} collection={collection} setCollection={setCollection} addToDeck={addToDeck} goBuilder={() => setView('builder')} />}
-      {view === 'builder' && <BuilderView search={search} setSearch={setSearch} cards={filteredCards} deck={deck} setDeck={setDeck} deckCount={deckCount} addToDeck={addToDeck} />}
+      {view === 'builder' && <BuilderView search={search} setSearch={setSearch} cards={libraryCards} deck={deck} setDeck={setDeck} deckCount={deckCount} addToDeck={addToDeck} format={deckFormat} setFormat={setDeckFormat} goPlaytest={() => setView('playtest')} />}
+      {view === 'playtest' && <PlaytestView cards={libraryCards} deck={deck} format={deckFormat} goBuilder={() => setView('builder')} />}
 
       {notice && <div className="toast-notice"><Check />{notice}</div>}
     </main>
@@ -461,20 +483,96 @@ function Stat({ value, label, detail }: { value: string; label: string; detail: 
 function CollectionStepper({ quantity, onMinus, onPlus }: { quantity: number; onMinus: () => void; onPlus: () => void }) { return <div className="stepper"><button onClick={onMinus} aria-label="Quitar una copia"><Minus /></button><b>{quantity}</b><button onClick={onPlus} aria-label="Añadir una copia"><Plus /></button></div>; }
 function FilterGroup({ title, items, selected, onToggle, scrollable = false }: { title: string; items: FilterOption[]; selected: string[]; onToggle: (value: string) => void; scrollable?: boolean }) { return <div className={`filter-group ${scrollable ? 'is-scrollable' : ''}`}><p>{title}</p><div>{items.map((item) => <label key={item.value}><input type="checkbox" checked={selected.includes(item.value)} onChange={() => onToggle(item.value)} /><span>{item.label}</span><small>{item.count}</small></label>)}{items.length === 0 && <span className="filter-empty">Sin opciones</span>}</div></div>; }
 
-function BuilderView({ search, setSearch, cards, deck, setDeck, deckCount, addToDeck }: { search: string; setSearch: (value: string) => void; cards: Card[]; deck: Record<string, number>; setDeck: React.Dispatch<React.SetStateAction<Record<string, number>>>; deckCount: number; addToDeck: (card: Card) => void }) {
+const formatLabels: Record<DeckFormat, string> = { commander: 'Commander', standard: 'Standard', modern: 'Modern', legacy: 'Legacy', pauper: 'Pauper', limited: 'Limitado / Draft' };
+const deckSections = [
+  { key: 'Creature', label: 'Criaturas' }, { key: 'Planeswalker', label: 'Planeswalkers' }, { key: 'Artifact', label: 'Artefactos' },
+  { key: 'Enchantment', label: 'Encantamientos' }, { key: 'Instant', label: 'Instantáneos' }, { key: 'Sorcery', label: 'Conjuros' }, { key: 'Land', label: 'Tierras' },
+];
+function primaryDeckSection(card: Card) { return deckSections.find((section) => cardTypes(card).includes(section.key))?.key ?? 'Other'; }
+function formatTarget(format: DeckFormat) { return format === 'commander' ? 100 : format === 'limited' ? 40 : 60; }
+
+function BuilderView({ search, setSearch, cards, deck, setDeck, deckCount, addToDeck, format, setFormat, goPlaytest }: { search: string; setSearch: (value: string) => void; cards: Card[]; deck: Record<string, number>; setDeck: React.Dispatch<React.SetStateAction<Record<string, number>>>; deckCount: number; addToDeck: (card: Card) => void; format: DeckFormat; setFormat: (format: DeckFormat) => void; goPlaytest: () => void }) {
+  const target = formatTarget(format);
   const deckCards = cards.filter((card) => deck[card.name]);
-  const groups = ['Creature', 'Artifact', 'Instant', 'Sorcery', 'Land'];
+  const visibleSource = cards.filter((card) => `${card.name} ${card.type} ${card.setName} ${card.tags.join(' ')}`.toLowerCase().includes(search.toLowerCase()));
   const remove = (name: string) => setDeck((current) => { const next = { ...current }; if ((next[name] ?? 0) <= 1) delete next[name]; else next[name] -= 1; return next; });
+  const landCount = deckCards.filter((card) => primaryDeckSection(card) === 'Land').reduce((sum, card) => sum + (deck[card.name] ?? 0), 0);
+  const creatureCount = deckCards.filter((card) => primaryDeckSection(card) === 'Creature').reduce((sum, card) => sum + (deck[card.name] ?? 0), 0);
+  const rampCount = deckCards.filter((card) => card.tags.includes('ramp')).reduce((sum, card) => sum + (deck[card.name] ?? 0), 0);
+  const interactionCount = deckCards.filter((card) => card.tags.some((tag) => ['removal', 'counter', 'protection'].includes(tag))).reduce((sum, card) => sum + (deck[card.name] ?? 0), 0);
+  const recommendedLands = format === 'commander' ? '36–38' : format === 'limited' ? '16–18' : '23–26';
+  const score = Math.max(28, Math.min(96, Math.round(42 + Math.min(deckCount / target, 1) * 30 + Math.min(rampCount / 10, 1) * 12 + Math.min(interactionCount / 8, 1) * 12)));
   return <div className="builder-shell">
-    <div className="builder-top"><div><div className="flex items-center gap-2"><Badge className="bg-emerald-300/10 text-emerald-200">COMMANDER</Badge><span className="text-xs text-stone-500">Guardado hace unos segundos</span></div><input className="deck-title" defaultValue="Horror en la espesura" aria-label="Nombre del mazo" /></div><div className="flex items-center gap-2"><button className="select-compact">Commander <ChevronDown /></button><Button variant="outline" className="border-white/10 bg-white/3">Vista <Grid2X2 /></Button><Button className="bg-amber-300 font-bold text-[#17150e] hover:bg-amber-200">Guardar mazo</Button></div></div>
+    <div className="builder-top"><div><div className="flex items-center gap-2"><Badge className="bg-emerald-300/10 text-emerald-200">{formatLabels[format].toUpperCase()}</Badge><span className="text-xs text-stone-500">Cambios guardados en este dispositivo</span></div><input className="deck-title" defaultValue="Horror en la espesura" aria-label="Nombre del mazo" /></div><div className="flex flex-wrap items-center gap-2"><div className="native-select-wrap deck-format-select"><select value={format} onChange={(event) => setFormat(event.target.value as DeckFormat)} aria-label="Formato del mazo">{Object.entries(formatLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select><ChevronDown /></div><Button onClick={goPlaytest} variant="outline" className="border-emerald-300/20 bg-emerald-300/5 text-emerald-100"><Swords /> Probar mazo</Button><Button className="bg-amber-300 font-bold text-[#17150e] hover:bg-amber-200">Guardar mazo</Button></div></div>
     <div className="builder-grid">
-      <aside className="builder-collection"><div className="builder-panel-head"><div><p className="eyebrow">Fuente</p><h2>Tu colección</h2></div><Badge variant="outline" className="border-white/10 text-stone-400">248</Badge></div><div className="search-field compact"><Search /><input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar en colección…" /></div><div className="mt-3 flex gap-2"><button className="filter-chip active">Todas</button><button className="filter-chip">Compatibles</button><button className="filter-chip">Sin usar</button></div><div className="builder-source-list">{cards.slice(0, 8).map((card) => <div className="source-card" key={card.name}><img src={card.image} alt="" /><div><strong>{card.name}</strong><span>{card.type} · {card.mana}</span><small>Disponibles: {card.qty}</small></div><button onClick={() => addToDeck(card)}><Plus /></button></div>)}</div></aside>
-      <section className="deck-canvas"><div className="deck-summary"><div><span className="deck-count-ring" style={{ '--progress': `${Math.min(deckCount, 100)}%` } as React.CSSProperties}><strong>{deckCount}</strong><small>/ 100</small></span><div><p className="eyebrow">Mazo principal</p><h2>Horror en la espesura</h2><span className="text-xs text-stone-500">{deckCards.length} cartas únicas · Commander casual</span></div></div><div className="mana-pips"><i className="pip pip-u">U</i><i className="pip pip-b">B</i><i className="pip pip-g">G</i></div></div>
-        <div className="deck-groups">{groups.map((group) => { const grouped = deckCards.filter((card) => card.type === group); if (!grouped.length) return null; return <div className="deck-group" key={group}><div className="deck-group-title"><span>{group === 'Creature' ? 'Criaturas' : group === 'Artifact' ? 'Artefactos' : group === 'Instant' ? 'Instantáneos' : group === 'Sorcery' ? 'Conjuros' : 'Tierras'}</span><Badge variant="outline" className="border-white/8 text-stone-500">{grouped.reduce((sum, card) => sum + (deck[card.name] ?? 0), 0)}</Badge></div>{grouped.map((card) => <div className="deck-row" key={card.name}><img src={card.image} alt="" /><span className="deck-qty">{deck[card.name]}×</span><div><strong>{card.name}</strong><small>{card.tags.join(' · ')}</small></div><span className="mana-cost">{card.mana}</span><button onClick={() => remove(card.name)} aria-label={`Quitar ${card.name}`}><X /></button></div>)}</div>; })}<button className="empty-slot"><CirclePlus />Añadir una sección</button></div>
+      <aside className="builder-collection"><div className="builder-panel-head"><div><p className="eyebrow">Fuente</p><h2>Tu colección</h2></div><Badge variant="outline" className="border-white/10 text-stone-400">{cards.length}</Badge></div><div className="search-field compact"><Search /><input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar en colección…" /></div><div className="mt-3 flex gap-2"><button className="filter-chip active">Todas</button><button className="filter-chip">Compatibles</button><button className="filter-chip">Sin usar</button></div><div className="builder-source-list">{visibleSource.slice(0, 12).map((card) => <div className="source-card" key={collectionIdentity(card)}><img src={card.image} alt="" /><div><strong>{card.name}</strong><span>{card.type} · {card.mana}</span><small>En el mazo: {deck[card.name] ?? 0}</small></div><button onClick={() => addToDeck(card)} aria-label={`Añadir ${card.name}`}><Plus /></button></div>)}</div></aside>
+      <section className="deck-canvas"><div className="deck-summary"><div><span className="deck-count-ring" style={{ '--progress': `${Math.min((deckCount / target) * 100, 100)}%` } as React.CSSProperties}><strong>{deckCount}</strong><small>/ {target}</small></span><div><p className="eyebrow">Mazo principal</p><h2>Horror en la espesura</h2><span className="text-xs text-stone-500">{deckCards.length} cartas únicas · {formatLabels[format]}</span></div></div><div className="deck-summary-metrics"><span><b>{landCount}</b> tierras</span><span><b>{creatureCount}</b> criaturas</span><span><b>{rampCount}</b> ramp</span></div></div>
+        <div className="deck-groups">{deckSections.map((section) => { const grouped = deckCards.filter((card) => primaryDeckSection(card) === section.key); if (!grouped.length) return null; return <div className="deck-group" key={section.key}><div className="deck-group-title"><span>{section.label}</span><Badge variant="outline" className="border-white/8 text-stone-500">{grouped.reduce((sum, card) => sum + (deck[card.name] ?? 0), 0)}</Badge></div>{grouped.map((card) => <div className="deck-row" key={card.name}><img src={card.image} alt="" /><span className="deck-qty">{deck[card.name]}×</span><div><strong>{card.name}</strong><small>{card.type} · {card.tags.join(' · ')}</small></div><span className="mana-cost">{card.mana}</span><button onClick={() => remove(card.name)} aria-label={`Quitar ${card.name}`}><X /></button></div>)}</div>; })}<button className="empty-slot"><CirclePlus />Añadir una sección personalizada</button></div>
       </section>
-      <aside className="insights-panel"><div className="builder-panel-head"><div><p className="eyebrow">Asistente</p><h2>Salud del mazo</h2></div><span className="health-score">72</span></div><div className="health-track"><span /></div><p className="mt-2 text-xs text-stone-500">Buena base. Faltan tierras y respuestas para llegar al equilibrio recomendado.</p><div className="recommendations"><Insight icon={<LandPlot />} tone="amber" title="Añade 32–34 tierras" text={`Tienes 1. Para Commander recomendamos 36–38 en total.`} action="Ver tierras" /><Insight icon={<Zap />} tone="green" title="Ramp bien encaminado" text="3 piezas detectadas. Objetivo recomendado: 10–12." action="Ver ramp" /><Insight icon={<ShieldCheck />} tone="blue" title="Falta interacción" text="Solo 1 respuesta. Añade removal y protección." action="Sugerir cartas" /></div><div className="analysis-block"><div className="flex items-center justify-between"><h3>Curva de maná</h3><span>Media 2,8</span></div><div className="mana-chart">{[18, 52, 88, 64, 39, 22, 12].map((height, index) => <div key={index}><span style={{ height: `${height}%` }} /><small>{index === 6 ? '6+' : index}</small></div>)}</div></div><div className="analysis-block"><h3>Sinergias detectadas</h3><div className="synergy-list"><span>Landfall <b>4</b></span><span>Ramp <b>3</b></span><span>Artefactos <b>2</b></span><span>Robo de cartas <b>2</b></span></div></div><Button variant="outline" className="mt-5 w-full border-amber-300/20 bg-amber-300/5 text-amber-100"><BarChart3 />Análisis completo</Button></aside>
+      <aside className="insights-panel"><div className="builder-panel-head"><div><p className="eyebrow">Asistente</p><h2>Salud del mazo</h2></div><span className="health-score">{score}</span></div><div className="health-track"><span style={{ width: `${score}%` }} /></div><p className="mt-2 text-xs text-stone-500">Recomendaciones orientativas para {formatLabels[format]}. No sustituyen las reglas del formato.</p><div className="recommendations"><Insight icon={<LandPlot />} tone="amber" title={`Objetivo: ${recommendedLands} tierras`} text={`Actualmente tienes ${landCount}. Ajusta según tu curva y fuentes de maná.`} action="Revisar tierras" /><Insight icon={<Zap />} tone="green" title="Aceleración y fijación" text={`${rampCount} piezas de ramp detectadas. ${format === 'commander' ? 'Objetivo habitual: 10–12.' : 'Añade las que requiera tu curva.'}`} action="Ver ramp" /><Insight icon={<ShieldCheck />} tone="blue" title="Interacción" text={`${interactionCount} respuestas detectadas entre removal, protección y counters.`} action="Ver respuestas" /></div><div className="analysis-block"><div className="flex items-center justify-between"><h3>Curva de maná</h3><span>MV medio visible</span></div><div className="mana-chart">{[12, 42, 88, 70, 44, 25, 14].map((height, index) => <div key={index}><span style={{ height: `${height}%` }} /><small>{index === 6 ? '6+' : index}</small></div>)}</div></div><div className="analysis-block"><h3>Sinergias detectadas</h3><div className="synergy-list">{[...new Set(deckCards.flatMap((card) => card.tags))].slice(0, 8).map((tag) => <span key={tag}>{tag} <b>{deckCards.filter((card) => card.tags.includes(tag)).length}</b></span>)}</div></div><Button onClick={goPlaytest} variant="outline" className="mt-5 w-full border-amber-300/20 bg-amber-300/5 text-amber-100"><Swords />Abrir mesa de prueba</Button></aside>
     </div>
   </div>;
 }
+
+type GamePiece = { instanceId: string; card: Card; tapped: boolean; plusOne: number; markers: string[]; token?: boolean };
+function shuffled<T>(items: T[]) { const next = [...items]; for (let index = next.length - 1; index > 0; index -= 1) { const other = Math.floor(Math.random() * (index + 1)); [next[index], next[other]] = [next[other], next[index]]; } return next; }
+function makePiece(card: Card, suffix: string, token = false): GamePiece { return { instanceId: `${card.name}:${suffix}:${Math.random().toString(36).slice(2)}`, card, tapped: false, plusOne: 0, markers: [], token }; }
+function tokenCard(name: string, power: string, toughness: string, color: string): Card { return { name, rarity: 'Token', slot: 'Token', set: 'TKN · 001', setName: 'Ficha', image: `https://api.scryfall.com/cards/named?format=image&version=normal&fuzzy=${encodeURIComponent(name)}`, foil: false, type: `Token Creature — ${name.replace(' Token', '')}`, mana: '—', color, tags: ['token'], types: ['Creature'], subtypes: [name.replace(' Token', '')], manaValue: 0, power, toughness, qty: 1 }; }
+
+function PlaytestView({ cards, deck, format, goBuilder }: { cards: Card[]; deck: Record<string, number>; format: DeckFormat; goBuilder: () => void }) {
+  const [library, setLibrary] = useState<GamePiece[]>([]);
+  const [hand, setHand] = useState<GamePiece[]>([]);
+  const [lands, setLands] = useState<GamePiece[]>([]);
+  const [spells, setSpells] = useState<GamePiece[]>([]);
+  const [graveyard, setGraveyard] = useState<GamePiece[]>([]);
+  const [exile, setExile] = useState<GamePiece[]>([]);
+  const [command, setCommand] = useState<GamePiece[]>([]);
+  const [life, setLife] = useState(format === 'commander' ? 40 : 20);
+  const [turn, setTurn] = useState(1);
+  const [marker, setMarker] = useState('Vigilancia');
+
+  function resetGame() {
+    const pieces = cards.flatMap((card) => Array.from({ length: Math.max(0, deck[card.name] ?? 0) }, (_, index) => makePiece(card, String(index))));
+    const commanderIndex = format === 'commander' ? pieces.findIndex((piece) => isLegendary(piece.card)) : -1;
+    const commander = commanderIndex >= 0 ? pieces.splice(commanderIndex, 1) : [];
+    const nextLibrary = shuffled(pieces);
+    setHand(nextLibrary.slice(-7));
+    setLibrary(nextLibrary.slice(0, -7));
+    setCommand(commander);
+    setLands([]); setSpells([]); setGraveyard([]); setExile([]);
+    setLife(format === 'commander' ? 40 : 20); setTurn(1);
+  }
+  useEffect(() => { resetGame(); }, [format]);
+
+  function drawCard() { const card = library[library.length - 1]; if (!card) return; setLibrary((current) => current.slice(0, -1)); setHand((current) => [...current, card]); }
+  function newHand() { const next = shuffled([...library, ...hand]); setHand(next.slice(-7)); setLibrary(next.slice(0, -7)); }
+  function playFromHand(piece: GamePiece) { setHand((current) => current.filter((item) => item.instanceId !== piece.instanceId)); if (cardTypes(piece.card).includes('Land')) setLands((current) => [...current, piece]); else setSpells((current) => [...current, piece]); }
+  function updateBattlefield(id: string, updater: (piece: GamePiece) => GamePiece) { setLands((current) => current.map((piece) => piece.instanceId === id ? updater(piece) : piece)); setSpells((current) => current.map((piece) => piece.instanceId === id ? updater(piece) : piece)); }
+  function moveFromBattlefield(piece: GamePiece, destination: 'graveyard' | 'exile') { setLands((current) => current.filter((item) => item.instanceId !== piece.instanceId)); setSpells((current) => current.filter((item) => item.instanceId !== piece.instanceId)); (destination === 'graveyard' ? setGraveyard : setExile)((current) => [...current, { ...piece, tapped: false }]); }
+  function addToken(card: Card) { setSpells((current) => [...current, makePiece(card, 'token', true)]); }
+  function playCommander(piece: GamePiece) { setCommand((current) => current.filter((item) => item.instanceId !== piece.instanceId)); setSpells((current) => [...current, piece]); }
+  const nextTurn = () => { setTurn((value) => value + 1); setLands((current) => current.map((piece) => ({ ...piece, tapped: false }))); setSpells((current) => current.map((piece) => ({ ...piece, tapped: false }))); drawCard(); };
+  return <div className="playtest-shell">
+    <header className="playtest-toolbar"><div><p className="eyebrow">Sandbox sin reglas automáticas</p><h1>Prueba tu mazo</h1><span>{formatLabels[format]} · Turno {turn} · {library.length + hand.length + lands.length + spells.length + graveyard.length + exile.length + command.length} cartas en juego</span></div><div className="playtest-actions"><Button variant="outline" onClick={goBuilder} className="border-white/10 bg-white/3"><Layers3 />Constructor</Button><Button variant="outline" onClick={() => setLibrary((current) => shuffled(current))} className="border-white/10 bg-white/3"><Shuffle />Mezclar</Button><Button variant="outline" onClick={newHand} className="border-white/10 bg-white/3"><Hand />Nueva mano de 7</Button><Button onClick={nextTurn} className="bg-amber-300 font-bold text-[#17150e] hover:bg-amber-200"><SkipForward />Siguiente turno</Button><button className="reset-table" onClick={resetGame} aria-label="Reiniciar mesa"><RotateCcw /></button></div></header>
+    <div className="playmat">
+      <div className="upper-zones">
+        <PlayZone title="Comandante" icon={<Crown />} count={command.length} className="command-zone">{command.map((piece) => <button key={piece.instanceId} className="zone-card-face" onClick={() => playCommander(piece)} title="Bajar comandante"><img src={piece.card.image} alt={piece.card.name} /><span>Bajar</span></button>)}</PlayZone>
+        <PlayZone title="Exilio" icon={<Ban />} count={exile.length}><ZonePile cards={exile} empty="Vacío" /></PlayZone>
+        <PlayZone title="Biblioteca" icon={<Library />} count={library.length}><button className="library-pile" onClick={drawCard} disabled={!library.length} title="Robar una carta">{library.length > 0 && <><i /><i /><img src="assets/magic-card-back.png" alt="Reverso de Magic" /></>}<b>{library.length}</b><span>Robar</span></button></PlayZone>
+        <div className="life-panel"><Heart /><span>Vidas</span><div><button onClick={() => setLife((value) => value - 1)}><Minus /></button><strong>{life}</strong><button onClick={() => setLife((value) => value + 1)}><Plus /></button></div><small>Turno {turn}</small></div>
+        <PlayZone title="Cementerio" icon={<Skull />} count={graveyard.length}><ZonePile cards={graveyard} empty="Vacío" /></PlayZone>
+      </div>
+
+      <section className="battlefield-zone spells-zone"><div className="battlefield-zone-head"><div><Swords /><span>Hechizos y permanentes</span><b>{spells.length}</b></div><div className="token-tools"><span>Añadir ficha:</span><button onClick={() => addToken(tokenCard('Treasure Token', '—', '—', 'C'))}>Tesoro</button><button onClick={() => addToken(tokenCard('Spirit Token', '1', '1', 'W'))}>Espíritu 1/1</button><button onClick={() => addToken(tokenCard('Beast Token', '3', '3', 'G'))}>Bestia 3/3</button></div></div><div className="battlefield-cards">{spells.map((piece) => <BattlefieldPiece key={piece.instanceId} piece={piece} marker={marker} onTap={() => updateBattlefield(piece.instanceId, (item) => ({ ...item, tapped: !item.tapped }))} onCounter={(amount) => updateBattlefield(piece.instanceId, (item) => ({ ...item, plusOne: Math.max(0, item.plusOne + amount) }))} onMarker={() => updateBattlefield(piece.instanceId, (item) => ({ ...item, markers: item.markers.includes(marker) ? item.markers.filter((value) => value !== marker) : [...item.markers, marker] }))} onGrave={() => moveFromBattlefield(piece, 'graveyard')} onExile={() => moveFromBattlefield(piece, 'exile')} />)}{spells.length === 0 && <span className="zone-empty">Baja aquí criaturas, artefactos, encantamientos y otros hechizos.</span>}</div></section>
+      <section className="battlefield-zone lands-zone"><div className="battlefield-zone-head"><div><LandPlot /><span>Tierras</span><b>{lands.length}</b></div><div className="marker-picker"><span>Marcador:</span>{['Vigilancia', 'Prisa', 'Toque mortal', 'Escudo'].map((value) => <button key={value} data-active={marker === value} onClick={() => setMarker(value)}>{value}</button>)}</div></div><div className="battlefield-cards compact">{lands.map((piece) => <BattlefieldPiece key={piece.instanceId} piece={piece} marker={marker} onTap={() => updateBattlefield(piece.instanceId, (item) => ({ ...item, tapped: !item.tapped }))} onCounter={(amount) => updateBattlefield(piece.instanceId, (item) => ({ ...item, plusOne: Math.max(0, item.plusOne + amount) }))} onMarker={() => updateBattlefield(piece.instanceId, (item) => ({ ...item, markers: item.markers.includes(marker) ? item.markers.filter((value) => value !== marker) : [...item.markers, marker] }))} onGrave={() => moveFromBattlefield(piece, 'graveyard')} onExile={() => moveFromBattlefield(piece, 'exile')} />)}{lands.length === 0 && <span className="zone-empty">Las tierras que juegues aparecerán aquí.</span>}</div></section>
+
+      <section className="hand-zone"><div className="hand-zone-head"><div><Hand /><span>Tu mano</span><b>{hand.length}</b></div><button onClick={drawCard} disabled={!library.length}><Plus /> Robar una</button></div><div className="hand-cards">{hand.map((piece, index) => <button key={piece.instanceId} className="hand-card" style={{ '--hand-index': index, '--hand-center': (hand.length - 1) / 2 } as React.CSSProperties} onClick={() => playFromHand(piece)} title={`Bajar ${piece.card.name}`}><img src={piece.card.image} alt={piece.card.name} /><span>{cardTypes(piece.card).includes('Land') ? 'Jugar tierra' : 'Bajar a mesa'}</span></button>)}{hand.length === 0 && <span className="zone-empty">No tienes cartas en la mano. Roba de la biblioteca.</span>}</div></section>
+    </div>
+  </div>;
+}
+
+function PlayZone({ title, icon, count, className = '', children }: { title: string; icon: React.ReactNode; count: number; className?: string; children: React.ReactNode }) { return <section className={`play-zone ${className}`}><header>{icon}<span>{title}</span><b>{count}</b></header><div>{children}</div></section>; }
+function ZonePile({ cards, empty }: { cards: GamePiece[]; empty: string }) { const top = cards[cards.length - 1]; return top ? <div className="zone-pile"><i /><img src={top.card.image} alt={top.card.name} /><b>{cards.length}</b><span>{top.card.name}</span></div> : <span className="zone-empty">{empty}</span>; }
+function BattlefieldPiece({ piece, marker, onTap, onCounter, onMarker, onGrave, onExile }: { piece: GamePiece; marker: string; onTap: () => void; onCounter: (amount: number) => void; onMarker: () => void; onGrave: () => void; onExile: () => void }) { return <article className={`battlefield-piece ${piece.tapped ? 'is-tapped' : ''}`}><button className="physical-card" onClick={onTap} title={piece.tapped ? 'Enderezar carta' : 'Tapear carta'}><img src={piece.card.image} alt={piece.card.name} />{piece.plusOne > 0 && <b className="counter-badge">+{piece.plusOne}/+{piece.plusOne}</b>}{piece.markers.map((value) => <i className="ability-marker" key={value}>{value}</i>)}</button><div className="piece-controls"><button onClick={() => onCounter(1)}>+1/+1</button><button onClick={() => onCounter(-1)} disabled={!piece.plusOne}>−</button><button onClick={onMarker}>{marker}</button><button onClick={onGrave} title="Enviar al cementerio"><Skull /></button><button onClick={onExile} title="Exiliar"><Ban /></button></div></article>; }
 
 function Insight({ icon, tone, title, text, action }: { icon: React.ReactNode; tone: string; title: string; text: string; action: string }) { return <div className={`insight insight-${tone}`}><div className="insight-icon">{icon}</div><div><strong>{title}</strong><p>{text}</p><button>{action} <ArrowRight /></button></div></div>; }
