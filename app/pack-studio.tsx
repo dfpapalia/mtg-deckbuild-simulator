@@ -29,7 +29,7 @@ const cards: Card[] = [
 
 const openingCards = cards.slice(0, 5);
 
-export function PackStudio({ userName, signInPath = '/signin-with-chatgpt?return_to=%2F' }: { userName?: string | null; signInPath?: string }) {
+export function PackStudio({ userName, signInPath = '/signin-with-chatgpt?return_to=%2F', staticDemo = false }: { userName?: string | null; signInPath?: string; staticDemo?: boolean }) {
   const [view, setView] = useState<AppView>('packs');
   const [viewMode, setViewMode] = useState<ViewMode>('stack');
   const [opening, setOpening] = useState(false);
@@ -47,20 +47,22 @@ export function PackStudio({ userName, signInPath = '/signin-with-chatgpt?return
   function openPack() { setOpening(true); setSaved(false); window.setTimeout(() => { setOpened((value) => value + 1); setOpening(false); }, 650); }
   async function savePack() {
     const packCards = Array.from({ length: 15 }, (_, index) => openingCards[index % openingCards.length]);
-    try {
-      const response = await fetch('/api/collection', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ cards: packCards }),
-      });
-      if (response.status === 401) { flash('Inicia sesión para guardar tu colección'); return; }
-      if (!response.ok) throw new Error('save_failed');
-    } catch {
-      flash('No se pudo sincronizar; inténtalo de nuevo');
-      return;
+    if (!staticDemo) {
+      try {
+        const response = await fetch('/api/collection', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ cards: packCards }),
+        });
+        if (response.status === 401) { flash('Inicia sesión para guardar tu colección'); return; }
+        if (!response.ok) throw new Error('save_failed');
+      } catch {
+        flash('No se pudo sincronizar; inténtalo de nuevo');
+        return;
+      }
     }
     setCollection((current) => { const next = { ...current }; openingCards.forEach((card) => { next[card.name] = (next[card.name] ?? 0) + 1; }); return next; });
-    setSaved(true); flash('15 cartas añadidas a tu colección');
+    setSaved(true); flash(staticDemo ? '15 cartas añadidas a la colección de demostración' : '15 cartas añadidas a tu colección');
   }
   function addToDeck(card: Card) { setDeck((current) => ({ ...current, [card.name]: (current[card.name] ?? 0) + 1 })); flash(`${card.name} añadida al mazo`); }
 
