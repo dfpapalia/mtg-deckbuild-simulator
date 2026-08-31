@@ -42,6 +42,12 @@ type MtgJsonCard = {
   number: string;
   rarity: string;
   type: string;
+  types?: string[];
+  subtypes?: string[];
+  supertypes?: string[];
+  convertedManaCost?: number;
+  power?: string;
+  toughness?: string;
   manaCost?: string;
   text?: string;
   colors?: string[];
@@ -77,6 +83,12 @@ export type OpenedCard = {
   mana: string;
   color: string;
   tags: string[];
+  types: string[];
+  subtypes: string[];
+  supertypes: string[];
+  manaValue: number;
+  power?: string;
+  toughness?: string;
   qty: number;
 };
 
@@ -164,6 +176,12 @@ export function simulateBooster(set: MtgSetData, productCode: string): OpenedCar
         mana: source.manaCost || '—',
         color: (source.colors?.length ? source.colors : source.colorIdentity ?? []).join('') || 'C',
         tags: [...new Set([...(source.keywords ?? []), ...keywordTags(source.text ?? '')])].map((tag) => tag.toLowerCase()),
+        types: source.types ?? parseCardTypes(source.type),
+        subtypes: source.subtypes ?? parseCardSubtypes(source.type),
+        supertypes: source.supertypes ?? (source.type.toLowerCase().includes('legendary') ? ['Legendary'] : []),
+        manaValue: source.convertedManaCost ?? 0,
+        power: source.power,
+        toughness: source.toughness,
         qty: 1,
       });
     }
@@ -216,6 +234,17 @@ function scryfallImage(id: string) {
 
 function namedImage(name: string) {
   return `https://api.scryfall.com/cards/named?format=image&version=normal&exact=${encodeURIComponent(name)}`;
+}
+
+function parseCardTypes(typeLine: string) {
+  const beforeDash = typeLine.split(/\s+[—-]\s+/)[0];
+  return ['Creature', 'Artifact', 'Enchantment', 'Instant', 'Sorcery', 'Planeswalker', 'Land', 'Battle', 'Kindred']
+    .filter((type) => new RegExp(`\\b${type}\\b`, 'i').test(beforeDash));
+}
+
+function parseCardSubtypes(typeLine: string) {
+  const afterDash = typeLine.split(/\s+[—-]\s+/)[1];
+  return afterDash ? afterDash.split(/\s+/).filter(Boolean) : [];
 }
 
 function humanize(value: string) {

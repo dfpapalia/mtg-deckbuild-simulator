@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Archive, ArrowRight, BarChart3, Check, ChevronDown, ChevronLeft, ChevronRight, CirclePlus,
-  Eye, EyeOff, Filter, Grid2X2, LandPlot, Layers3, Library, Minus, Move, PackageOpen, Plus, RotateCw, Scissors,
+  Eye, EyeOff, Filter, Grid2X2, LandPlot, Layers3, Library, List, Minus, Move, PackageOpen, Plus, RotateCw, Scissors,
   Search, ShieldCheck, SkipForward, SlidersHorizontal, Sparkles, UserRound, WandSparkles, X, Zap, ZoomIn,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -13,21 +13,23 @@ import { getBoosterProducts, loadSet, loadSetCatalog, simulateBooster, type Boos
 
 type AppView = 'packs' | 'collection' | 'builder';
 type ViewMode = 'automatic' | 'stack' | 'grid';
-type Card = { id?: string; name: string; rarity: string; slot: string; set: string; setName: string; image: string; foil: boolean; type: string; mana: string; color: string; tags: string[]; qty: number };
+type Card = { id?: string; uuid?: string; name: string; rarity: string; slot: string; set: string; setName: string; image: string; foil: boolean; type: string; mana: string; color: string; tags: string[]; types?: string[]; subtypes?: string[]; supertypes?: string[]; manaValue?: number; power?: string; toughness?: string; qty: number };
 
 const image = (name: string) => `https://api.scryfall.com/cards/named?format=image&version=normal&exact=${encodeURIComponent(name)}`;
 const cards: Card[] = [
-  { name: 'Kaito, Bane of Nightmares', rarity: 'Mítica', slot: 'Borderless', set: 'DSK · 220', setName: 'Duskmourn', image: image('Kaito, Bane of Nightmares'), foil: true, type: 'Planeswalker', mana: '2UB', color: 'UB', tags: ['ninjutsu', 'draw'], qty: 1 },
-  { name: 'Overlord of the Hauntwoods', rarity: 'Mítica', slot: 'Foil tradicional', set: 'DSK · 194', setName: 'Duskmourn', image: image('Overlord of the Hauntwoods'), foil: true, type: 'Creature', mana: '3GG', color: 'G', tags: ['ramp', 'landfall'], qty: 1 },
-  { name: 'Unholy Annex // Ritual Chamber', rarity: 'Rara', slot: 'Double-faced', set: 'DSK · 118', setName: 'Duskmourn', image: image('Unholy Annex'), foil: false, type: 'Enchantment', mana: '2B', color: 'B', tags: ['draw', 'demon'], qty: 2 },
-  { name: 'Enduring Curiosity', rarity: 'Rara', slot: 'Rare / Mythic', set: 'DSK · 51', setName: 'Duskmourn', image: image('Enduring Curiosity'), foil: false, type: 'Creature', mana: '2UU', color: 'U', tags: ['draw', 'flash'], qty: 1 },
-  { name: 'Fear of Missing Out', rarity: 'Rara', slot: 'Wildcard', set: 'DSK · 136', setName: 'Duskmourn', image: image('Fear of Missing Out'), foil: false, type: 'Creature', mana: '1R', color: 'R', tags: ['discard', 'extra combat'], qty: 2 },
+  { name: 'Kaito, Bane of Nightmares', rarity: 'Mítica', slot: 'Borderless', set: 'DSK · 220', setName: 'Duskmourn', image: image('Kaito, Bane of Nightmares'), foil: true, type: 'Legendary Planeswalker — Kaito', mana: '2UB', color: 'UB', tags: ['ninjutsu', 'draw'], supertypes: ['Legendary'], types: ['Planeswalker'], subtypes: ['Kaito'], manaValue: 4, qty: 1 },
+  { name: 'Overlord of the Hauntwoods', rarity: 'Mítica', slot: 'Foil tradicional', set: 'DSK · 194', setName: 'Duskmourn', image: image('Overlord of the Hauntwoods'), foil: true, type: 'Enchantment Creature — Avatar Horror', mana: '3GG', color: 'G', tags: ['ramp', 'landfall'], types: ['Enchantment', 'Creature'], subtypes: ['Avatar', 'Horror'], manaValue: 5, power: '6', toughness: '5', qty: 1 },
+  { name: 'Unholy Annex // Ritual Chamber', rarity: 'Rara', slot: 'Double-faced', set: 'DSK · 118', setName: 'Duskmourn', image: image('Unholy Annex'), foil: false, type: 'Enchantment — Room', mana: '2B', color: 'B', tags: ['draw', 'demon'], types: ['Enchantment'], subtypes: ['Room'], manaValue: 3, qty: 2 },
+  { name: 'Enduring Curiosity', rarity: 'Rara', slot: 'Rare / Mythic', set: 'DSK · 51', setName: 'Duskmourn', image: image('Enduring Curiosity'), foil: false, type: 'Enchantment Creature — Cat Glimmer', mana: '2UU', color: 'U', tags: ['draw', 'flash'], types: ['Enchantment', 'Creature'], subtypes: ['Cat', 'Glimmer'], manaValue: 4, power: '4', toughness: '3', qty: 1 },
+  { name: 'Fear of Missing Out', rarity: 'Rara', slot: 'Wildcard', set: 'DSK · 136', setName: 'Duskmourn', image: image('Fear of Missing Out'), foil: false, type: 'Creature — Nightmare', mana: '1R', color: 'R', tags: ['discard', 'extra combat'], types: ['Creature'], subtypes: ['Nightmare'], manaValue: 2, power: '2', toughness: '3', qty: 2 },
   { name: 'Sol Ring', rarity: 'Infrecuente', slot: 'Commander staple', set: 'CMM · 396', setName: 'Commander Masters', image: image('Sol Ring'), foil: false, type: 'Artifact', mana: '1', color: 'C', tags: ['ramp', 'artifact'], qty: 3 },
   { name: 'Command Tower', rarity: 'Común', slot: 'Land', set: 'CMM · 991', setName: 'Commander Masters', image: image('Command Tower'), foil: false, type: 'Land', mana: '—', color: 'C', tags: ['mana fixing', 'land'], qty: 4 },
   { name: 'Arcane Signet', rarity: 'Infrecuente', slot: 'Commander staple', set: 'CMM · 378', setName: 'Commander Masters', image: image('Arcane Signet'), foil: true, type: 'Artifact', mana: '2', color: 'C', tags: ['ramp', 'mana fixing'], qty: 2 },
   { name: 'Beast Within', rarity: 'Infrecuente', slot: 'Interaction', set: 'CMM · 271', setName: 'Commander Masters', image: image('Beast Within'), foil: false, type: 'Instant', mana: '2G', color: 'G', tags: ['removal', 'instant'], qty: 2 },
   { name: 'Cultivate', rarity: 'Infrecuente', slot: 'Ramp', set: 'M21 · 177', setName: 'Core Set 2021', image: image('Cultivate'), foil: false, type: 'Sorcery', mana: '2G', color: 'G', tags: ['ramp', 'land'], qty: 3 },
 ];
+
+const collectionIdentity = (card: Card) => card.uuid ?? `${card.name}:${card.set}:${card.foil ? 'foil' : 'regular'}`;
 
 export function PackStudio({ userName, signInPath = '/signin-with-chatgpt?return_to=%2F', staticDemo = false }: { userName?: string | null; signInPath?: string; staticDemo?: boolean }) {
   const [view, setView] = useState<AppView>('packs');
@@ -36,7 +38,7 @@ export function PackStudio({ userName, signInPath = '/signin-with-chatgpt?return
   const [opened, setOpened] = useState(12);
   const [animationEnabled, setAnimationEnabled] = useState(true);
   const [search, setSearch] = useState('');
-  const [collection, setCollection] = useState(() => Object.fromEntries(cards.map((card) => [card.name, card.qty])));
+  const [collection, setCollection] = useState(() => Object.fromEntries(cards.map((card) => [collectionIdentity(card), card.qty])));
   const [libraryCards, setLibraryCards] = useState<Card[]>(cards);
   const [deck, setDeck] = useState<Record<string, number>>({ 'Overlord of the Hauntwoods': 1, 'Sol Ring': 1, 'Arcane Signet': 1, Cultivate: 1, 'Command Tower': 1, 'Beast Within': 1 });
   const [notice, setNotice] = useState<string | null>(null);
@@ -140,10 +142,10 @@ export function PackStudio({ userName, signInPath = '/signin-with-chatgpt?return
         return false;
       }
     }
-    setCollection((current) => { const next = { ...current }; pending.forEach((card) => { next[card.name] = (next[card.name] ?? 0) + 1; }); return next; });
+    setCollection((current) => { const next = { ...current }; pending.forEach((card) => { const key = collectionIdentity(card); next[key] = (next[key] ?? 0) + 1; }); return next; });
     setLibraryCards((current) => {
-      const known = new Set(current.map((card) => `${card.name}:${card.set}:${card.foil}`));
-      return [...pending.filter((card) => !known.has(`${card.name}:${card.set}:${card.foil}`)), ...current];
+      const known = new Set(current.map(collectionIdentity));
+      return [...pending.filter((card) => !known.has(collectionIdentity(card))), ...current];
     });
     setSavedCards((current) => new Set([...current, ...pending.map((card) => card.id ?? card.name)]));
     return true;
@@ -190,7 +192,7 @@ export function PackStudio({ userName, signInPath = '/signin-with-chatgpt?return
       </header>
 
       {view === 'packs' && <PackView viewMode={viewMode} setViewMode={setViewMode} opening={opening} opened={opened} openPack={openPack} saved={saved} savePack={savePack} goBuilder={() => setView('builder')} sets={sets} selectedSetCode={selectedSetCode} setSelectedSetCode={setSelectedSetCode} selectedSet={selectedSet} products={products} selectedProductCode={selectedProductCode} setSelectedProductCode={setSelectedProductCode} selectedProduct={selectedProduct} dataLoading={dataLoading} dataError={dataError} animationEnabled={animationEnabled} setAnimationEnabled={setAnimationEnabled} packCards={packCards} activeCard={activeCard} setActiveCard={setActiveCard} faceDownCards={faceDownCards} toggleCardFace={toggleCardFace} revealAllCards={revealAllCards} savedCards={savedCards} addCurrentAndNext={addCurrentAndNext} history={history} collectionTotal={Object.values(collection).reduce((sum, qty) => sum + qty, 0)} />}
-      {view === 'collection' && <CollectionView search={search} setSearch={setSearch} cards={filteredCards} collection={collection} setCollection={setCollection} addToDeck={addToDeck} goBuilder={() => setView('builder')} />}
+      {view === 'collection' && <CollectionView search={search} setSearch={setSearch} cards={libraryCards} collection={collection} setCollection={setCollection} addToDeck={addToDeck} goBuilder={() => setView('builder')} />}
       {view === 'builder' && <BuilderView search={search} setSearch={setSearch} cards={filteredCards} deck={deck} setDeck={setDeck} deckCount={deckCount} addToDeck={addToDeck} />}
 
       {notice && <div className="toast-notice"><Check />{notice}</div>}
@@ -358,19 +360,106 @@ function PackView({ viewMode, setViewMode, opening, opened, openPack, saved, sav
   </div>;
 }
 
+type CollectionGroup = { key: string; card: Card; quantity: number; order: number };
+type FilterOption = { value: string; label: string; count: number };
+
+const typeLabels: Record<string, string> = { Creature: 'Criatura', Instant: 'Instantáneo', Sorcery: 'Conjuro', Artifact: 'Artefacto', Land: 'Tierra', Enchantment: 'Encantamiento', Planeswalker: 'Planeswalker', Battle: 'Batalla', Kindred: 'Kindred' };
+const colorLabels: Record<string, string> = { W: 'Blanco', U: 'Azul', B: 'Negro', R: 'Rojo', G: 'Verde', M: 'Multicolor', C: 'Incoloro' };
+
+function cardTypes(card: Card) {
+  if (card.types?.length) return card.types;
+  const beforeDash = card.type.split(/\s+[—-]\s+/)[0];
+  return Object.keys(typeLabels).filter((type) => new RegExp(`\\b${type}\\b`, 'i').test(beforeDash));
+}
+function cardSubtypes(card: Card) {
+  if (card.subtypes?.length) return card.subtypes;
+  const afterDash = card.type.split(/\s+[—-]\s+/)[1];
+  return afterDash ? afterDash.split(/\s+/).filter(Boolean) : [];
+}
+function isLegendary(card: Card) { return Boolean(card.supertypes?.some((type) => type.toLowerCase() === 'legendary') || /\blegendary\b/i.test(card.type)); }
+function setCode(card: Card) { return card.set.split(' · ')[0]; }
+function colorMatches(card: Card, value: string) {
+  const colors = card.color === 'C' ? [] : [...new Set(card.color.split(''))];
+  if (value === 'C') return colors.length === 0;
+  if (value === 'M') return colors.length > 1;
+  return colors.includes(value);
+}
+
 function CollectionView({ search, setSearch, cards, collection, setCollection, addToDeck, goBuilder }: { search: string; setSearch: (value: string) => void; cards: Card[]; collection: Record<string, number>; setCollection: React.Dispatch<React.SetStateAction<Record<string, number>>>; addToDeck: (card: Card) => void; goBuilder: () => void }) {
-  const total = Object.values(collection).reduce((a, b) => a + b, 0);
-  const adjust = (name: string, amount: number) => setCollection((current) => ({ ...current, [name]: Math.max(0, (current[name] ?? 0) + amount) }));
+  const [displayMode, setDisplayMode] = useState<'grid' | 'list'>('grid');
+  const [sortBy, setSortBy] = useState<'recent' | 'name' | 'quantity' | 'set' | 'rarity'>('recent');
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [selectedColors, setSelectedColors] = useState<string[]>([]);
+  const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
+  const [selectedRarities, setSelectedRarities] = useState<string[]>([]);
+  const [selectedSets, setSelectedSets] = useState<string[]>([]);
+  const [selectedSubtypes, setSelectedSubtypes] = useState<string[]>([]);
+  const [legendaryOnly, setLegendaryOnly] = useState(false);
+
+  useEffect(() => {
+    const savedMode = window.localStorage.getItem('vaultforge:collection-view');
+    if (savedMode === 'grid' || savedMode === 'list') setDisplayMode(savedMode);
+  }, []);
+  useEffect(() => { window.localStorage.setItem('vaultforge:collection-view', displayMode); }, [displayMode]);
+
+  const groups = useMemo(() => {
+    const grouped = new Map<string, CollectionGroup>();
+    cards.forEach((card, order) => {
+      const key = collectionIdentity(card);
+      const quantity = collection[key] ?? card.qty ?? 0;
+      if (quantity <= 0) return;
+      const existing = grouped.get(key);
+      if (existing) existing.quantity = Math.max(existing.quantity, quantity);
+      else grouped.set(key, { key, card, quantity, order });
+    });
+    return [...grouped.values()];
+  }, [cards, collection]);
+
+  const optionFromValues = (values: string[], label: (value: string) => string = (value) => value): FilterOption[] => [...new Set(values)].sort((a, b) => label(a).localeCompare(label(b), 'es')).map((value) => ({ value, label: label(value), count: groups.filter((group) => valuesForOption(group.card, value)).length }));
+  function valuesForOption(card: Card, value: string) { return cardTypes(card).includes(value) || cardSubtypes(card).includes(value) || card.rarity === value || setCode(card) === value; }
+
+  const colorOptions: FilterOption[] = Object.entries(colorLabels).map(([value, label]) => ({ value, label, count: groups.filter((group) => colorMatches(group.card, value)).length })).filter((option) => option.count > 0);
+  const typeOptions = optionFromValues(groups.flatMap((group) => cardTypes(group.card)), (value) => typeLabels[value] ?? value);
+  const rarityOptions = optionFromValues(groups.map((group) => group.card.rarity));
+  const setOptions = optionFromValues(groups.map((group) => setCode(group.card)), (value) => `${groups.find((group) => setCode(group.card) === value)?.card.setName ?? value} · ${value}`);
+  const subtypeOptions = optionFromValues(groups.flatMap((group) => cardSubtypes(group.card)));
+  const legendaryCount = groups.filter((group) => isLegendary(group.card)).length;
+  const activeFilterCount = selectedColors.length + selectedTypes.length + selectedRarities.length + selectedSets.length + selectedSubtypes.length + (legendaryOnly ? 1 : 0);
+  const toggle = (setter: React.Dispatch<React.SetStateAction<string[]>>, value: string) => setter((current) => current.includes(value) ? current.filter((item) => item !== value) : [...current, value]);
+  const clearFilters = () => { setSelectedColors([]); setSelectedTypes([]); setSelectedRarities([]); setSelectedSets([]); setSelectedSubtypes([]); setLegendaryOnly(false); };
+
+  const visibleGroups = useMemo(() => {
+    const query = search.trim().toLowerCase();
+    const rarityOrder: Record<string, number> = { 'Mítica': 0, 'Rara': 1, 'Infrecuente': 2, 'Común': 3 };
+    return groups.filter(({ card }) => {
+      const corpus = `${card.name} ${card.setName} ${card.set} ${card.type} ${cardSubtypes(card).join(' ')} ${card.tags.join(' ')}`.toLowerCase();
+      return (!query || corpus.includes(query))
+        && (!selectedColors.length || selectedColors.some((value) => colorMatches(card, value)))
+        && (!selectedTypes.length || selectedTypes.some((value) => cardTypes(card).includes(value)))
+        && (!selectedRarities.length || selectedRarities.includes(card.rarity))
+        && (!selectedSets.length || selectedSets.includes(setCode(card)))
+        && (!selectedSubtypes.length || selectedSubtypes.some((value) => cardSubtypes(card).includes(value)))
+        && (!legendaryOnly || isLegendary(card));
+    }).sort((a, b) => sortBy === 'name' ? a.card.name.localeCompare(b.card.name, 'es') : sortBy === 'quantity' ? b.quantity - a.quantity : sortBy === 'set' ? a.card.setName.localeCompare(b.card.setName, 'es') : sortBy === 'rarity' ? (rarityOrder[a.card.rarity] ?? 9) - (rarityOrder[b.card.rarity] ?? 9) : a.order - b.order);
+  }, [groups, legendaryOnly, search, selectedColors, selectedRarities, selectedSets, selectedSubtypes, selectedTypes, sortBy]);
+
+  const total = groups.reduce((sum, group) => sum + group.quantity, 0);
+  const setCount = new Set(groups.map((group) => setCode(group.card))).size;
+  const foilCount = groups.filter((group) => group.card.foil).reduce((sum, group) => sum + group.quantity, 0);
+  const mythicCount = groups.filter((group) => group.card.rarity === 'Mítica').reduce((sum, group) => sum + group.quantity, 0);
+  const adjust = (card: Card, amount: number) => setCollection((current) => { const key = collectionIdentity(card); return { ...current, [key]: Math.max(0, (current[key] ?? card.qty) + amount) }; });
+
   return <div className="mx-auto max-w-[1500px] px-4 py-7 sm:px-7">
-    <div className="flex flex-wrap items-end justify-between gap-5"><div><p className="eyebrow">Biblioteca personal</p><h1 className="mt-1 font-display text-4xl font-semibold">Mi colección</h1><p className="mt-2 text-sm text-stone-500">Todas las cartas abiertas, tierras básicas y tokens en un solo lugar.</p></div><Button onClick={goBuilder} className="h-10 bg-amber-300 font-bold text-[#17150e] hover:bg-amber-200"><Layers3 /> Construir un mazo</Button></div>
-    <div className="stats-grid mt-7"><Stat value={String(total)} label="Cartas totales" detail="+15 esta semana" /><Stat value="196" label="Cartas únicas" detail="de 14 ediciones" /><Stat value="17" label="Cartas foil" detail="6,4% del total" /><Stat value="7" label="Míticas" detail="3 sin usar" /></div>
-    <div className="toolbar mt-7"><div className="search-field"><Search /><input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar por nombre, tipo o edición…" /><kbd>⌘ K</kbd></div><Button variant="outline" className="border-white/10 bg-white/[.025] text-stone-300"><Filter />Filtros</Button><button className="select-compact">Más recientes <ChevronDown /></button></div>
-    <div className="collection-layout mt-5"><aside className="filter-panel"><FilterGroup title="Color" items={['Blanco', 'Azul', 'Negro', 'Rojo', 'Verde', 'Incoloro']} /><FilterGroup title="Tipo" items={['Criatura', 'Instantáneo', 'Conjuro', 'Artefacto', 'Tierra']} /><FilterGroup title="Rareza" items={['Mítica', 'Rara', 'Infrecuente', 'Común']} /></aside><section><div className="mb-3 flex items-center justify-between"><p className="text-xs text-stone-500">Mostrando <strong className="text-stone-300">{cards.length}</strong> cartas de tu colección</p><button className="text-xs text-stone-500"><SlidersHorizontal className="mr-1 inline size-3" />Agrupar por edición</button></div><div className="collection-grid">{cards.map((card) => <article className="collection-card" key={card.name}><div className="card-image-wrap"><img src={card.image} alt={card.name} />{card.foil && <span className="foil-sheen" />}<button onClick={() => addToDeck(card)} className="quick-add" aria-label={`Añadir ${card.name} al mazo`}><CirclePlus /></button><span className={`rarity rarity-${card.rarity.toLowerCase().replace('í','i')}`}>{card.rarity}</span></div><div className="collection-card-info"><strong>{card.name}</strong><span>{card.setName} · {card.set.split(' · ')[1]}</span><div><small>{card.type} · {card.mana}</small><div className="stepper"><button onClick={() => adjust(card.name, -1)}><Minus /></button><b>{collection[card.name] ?? 0}</b><button onClick={() => adjust(card.name, 1)}><Plus /></button></div></div></div></article>)}</div></section></div>
+    <div className="flex flex-wrap items-end justify-between gap-5"><div><p className="eyebrow">Biblioteca personal</p><h1 className="mt-1 font-display text-4xl font-semibold">Mi colección</h1><p className="mt-2 text-sm text-stone-500">Copias agrupadas con metadatos de edición, color, tipo, subtipo y rareza.</p></div><Button onClick={goBuilder} className="h-10 bg-amber-300 font-bold text-[#17150e] hover:bg-amber-200"><Layers3 /> Construir un mazo</Button></div>
+    <div className="stats-grid mt-7"><Stat value={String(total)} label="Cartas totales" detail={`${groups.length} impresiones únicas`} /><Stat value={String(groups.length)} label="Cartas agrupadas" detail={`de ${setCount} ediciones`} /><Stat value={String(foilCount)} label="Cartas foil" detail={`${total ? Math.round((foilCount / total) * 100) : 0}% del total`} /><Stat value={String(mythicCount)} label="Míticas" detail={`${legendaryCount} legendarias únicas`} /></div>
+    <div className="toolbar mt-7"><div className="search-field"><Search /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Buscar nombre, edición, tipo, subtipo o keyword…" /><kbd>⌘ K</kbd></div><Button variant="outline" onClick={() => setFiltersOpen((value) => !value)} className="border-white/10 bg-white/[.025] text-stone-300"><Filter />Filtros{activeFilterCount > 0 && <Badge className="filter-count">{activeFilterCount}</Badge>}</Button><div className="collection-view-toggle" aria-label="Vista de colección"><button onClick={() => setDisplayMode('grid')} data-active={displayMode === 'grid'} aria-label="Vista en grilla"><Grid2X2 /></button><button onClick={() => setDisplayMode('list')} data-active={displayMode === 'list'} aria-label="Vista en lista"><List /></button></div><div className="native-select-wrap collection-sort"><select value={sortBy} onChange={(event) => setSortBy(event.target.value as typeof sortBy)} aria-label="Ordenar colección"><option value="recent">Más recientes</option><option value="name">Nombre</option><option value="quantity">Cantidad</option><option value="set">Edición</option><option value="rarity">Rareza</option></select><ChevronDown /></div></div>
+    <div className="collection-layout mt-5"><aside className={`filter-panel ${filtersOpen ? 'is-open' : ''}`}><div className="filter-panel-head"><strong>Filtrar colección</strong>{activeFilterCount > 0 && <button onClick={clearFilters}>Limpiar</button>}</div><FilterGroup title="Color" items={colorOptions} selected={selectedColors} onToggle={(value) => toggle(setSelectedColors, value)} /><FilterGroup title="Tipo de carta" items={typeOptions} selected={selectedTypes} onToggle={(value) => toggle(setSelectedTypes, value)} /><FilterGroup title="Edición / Set" items={setOptions} selected={selectedSets} onToggle={(value) => toggle(setSelectedSets, value)} scrollable /><FilterGroup title="Rareza" items={rarityOptions} selected={selectedRarities} onToggle={(value) => toggle(setSelectedRarities, value)} /><FilterGroup title="Super-tipo" items={[{ value: 'legendary', label: 'Legendaria', count: legendaryCount }]} selected={legendaryOnly ? ['legendary'] : []} onToggle={() => setLegendaryOnly((value) => !value)} /><FilterGroup title="Subtipo" items={subtypeOptions} selected={selectedSubtypes} onToggle={(value) => toggle(setSelectedSubtypes, value)} scrollable /></aside><section className="min-w-0"><div className="mb-3 flex flex-wrap items-center justify-between gap-2"><p className="text-xs text-stone-500">Mostrando <strong className="text-stone-300">{visibleGroups.length}</strong> impresiones · <strong className="text-stone-300">{visibleGroups.reduce((sum, group) => sum + group.quantity, 0)}</strong> cartas</p><span className="grouping-status"><Layers3 />Copias idénticas agrupadas</span></div>{visibleGroups.length === 0 ? <div className="collection-empty"><Filter /><strong>No hay cartas con estos filtros</strong><span>Prueba otra combinación o limpia los filtros activos.</span><button onClick={clearFilters}>Limpiar filtros</button></div> : displayMode === 'grid' ? <div className="collection-grid">{visibleGroups.map(({ key, card, quantity }) => <article className="collection-card" key={key}><div className="card-image-wrap"><img src={card.image} alt={card.name} />{card.foil && <span className="foil-sheen" />}<button onClick={() => addToDeck(card)} className="quick-add" aria-label={`Añadir ${card.name} al mazo`}><CirclePlus /></button><span className={`rarity rarity-${card.rarity.toLowerCase().replace('í','i')}`}>{card.rarity}</span><span className="copy-count">{quantity}×</span></div><div className="collection-card-info"><strong>{card.name}</strong><span>{card.setName} · {card.set.split(' · ')[1]}{card.foil ? ' · Foil' : ''}</span><div><small>{card.type} · {card.mana}</small><CollectionStepper quantity={quantity} onMinus={() => adjust(card, -1)} onPlus={() => adjust(card, 1)} /></div>{cardSubtypes(card).length > 0 && <div className="metadata-tags">{cardSubtypes(card).slice(0, 3).map((subtype) => <i key={subtype}>{subtype}</i>)}{isLegendary(card) && <i>Legendaria</i>}</div>}</div></article>)}</div> : <div className="collection-list">{visibleGroups.map(({ key, card, quantity }) => <article className="collection-list-row" key={key}><img src={card.image} alt="" /><div className="list-card-main"><strong>{card.name}</strong><span>{card.type}</span><small>{card.tags.slice(0, 3).join(' · ') || 'Sin keywords detectadas'}</small></div><div className="list-meta"><small>Edición</small><strong>{setCode(card)} · {card.set.split(' · ')[1]}</strong><span>{card.setName}</span></div><div className="list-meta"><small>Rareza</small><strong>{card.rarity}{card.foil ? ' · Foil' : ''}</strong><span>{cardSubtypes(card).join(' · ') || 'Sin subtipo'}</span></div><div className="list-meta"><small>Maná</small><strong>{card.mana}</strong><span>MV {card.manaValue ?? '—'}{card.power && card.toughness ? ` · ${card.power}/${card.toughness}` : ''}</span></div><CollectionStepper quantity={quantity} onMinus={() => adjust(card, -1)} onPlus={() => adjust(card, 1)} /><button className="list-add-deck" onClick={() => addToDeck(card)} aria-label={`Añadir ${card.name} al mazo`}><Plus /></button></article>)}</div>}</section></div>
   </div>;
 }
 
 function Stat({ value, label, detail }: { value: string; label: string; detail: string }) { return <div className="stat-card"><strong>{value}</strong><span>{label}</span><small>{detail}</small></div>; }
-function FilterGroup({ title, items }: { title: string; items: string[] }) { return <div className="filter-group"><p>{title}</p>{items.map((item, index) => <label key={item}><input type="checkbox" defaultChecked={index === 5 && title === 'Color'} /><span>{item}</span><small>{12 + index * 7}</small></label>)}</div>; }
+function CollectionStepper({ quantity, onMinus, onPlus }: { quantity: number; onMinus: () => void; onPlus: () => void }) { return <div className="stepper"><button onClick={onMinus} aria-label="Quitar una copia"><Minus /></button><b>{quantity}</b><button onClick={onPlus} aria-label="Añadir una copia"><Plus /></button></div>; }
+function FilterGroup({ title, items, selected, onToggle, scrollable = false }: { title: string; items: FilterOption[]; selected: string[]; onToggle: (value: string) => void; scrollable?: boolean }) { return <div className={`filter-group ${scrollable ? 'is-scrollable' : ''}`}><p>{title}</p><div>{items.map((item) => <label key={item.value}><input type="checkbox" checked={selected.includes(item.value)} onChange={() => onToggle(item.value)} /><span>{item.label}</span><small>{item.count}</small></label>)}{items.length === 0 && <span className="filter-empty">Sin opciones</span>}</div></div>; }
 
 function BuilderView({ search, setSearch, cards, deck, setDeck, deckCount, addToDeck }: { search: string; setSearch: (value: string) => void; cards: Card[]; deck: Record<string, number>; setDeck: React.Dispatch<React.SetStateAction<Record<string, number>>>; deckCount: number; addToDeck: (card: Card) => void }) {
   const deckCards = cards.filter((card) => deck[card.name]);
