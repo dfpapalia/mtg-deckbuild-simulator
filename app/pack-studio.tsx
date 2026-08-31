@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Archive, ArrowRight, BarChart3, Check, ChevronDown, ChevronLeft, ChevronRight, CirclePlus,
   Filter, Grid2X2, LandPlot, Layers3, Library, Minus, Move, PackageOpen, Plus, RotateCw, Scissors,
@@ -159,6 +159,7 @@ export function PackStudio({ userName, signInPath = '/signin-with-chatgpt?return
     const key = card.id ?? card.name;
     setFaceDownCards((current) => { const next = new Set(current); if (next.has(key)) next.delete(key); else next.add(key); return next; });
   }
+  function revealAllCards() { setFaceDownCards(new Set()); }
   function addToDeck(card: Card) { setDeck((current) => ({ ...current, [card.name]: (current[card.name] ?? 0) + 1 })); flash(`${card.name} añadida al mazo`); }
 
   return (
@@ -183,7 +184,7 @@ export function PackStudio({ userName, signInPath = '/signin-with-chatgpt?return
         <div className="mobile-nav md:hidden"><NavButton active={view === 'packs'} onClick={() => setView('packs')} icon={<PackageOpen />}>Sobres</NavButton><NavButton active={view === 'collection'} onClick={() => setView('collection')} icon={<Library />}>Colección</NavButton><NavButton active={view === 'builder'} onClick={() => setView('builder')} icon={<Layers3 />}>Mazos</NavButton></div>
       </header>
 
-      {view === 'packs' && <PackView viewMode={viewMode} setViewMode={setViewMode} opening={opening} opened={opened} openPack={openPack} saved={saved} savePack={savePack} goBuilder={() => setView('builder')} sets={sets} selectedSetCode={selectedSetCode} setSelectedSetCode={setSelectedSetCode} selectedSet={selectedSet} products={products} selectedProductCode={selectedProductCode} setSelectedProductCode={setSelectedProductCode} selectedProduct={selectedProduct} dataLoading={dataLoading} dataError={dataError} animationEnabled={animationEnabled} setAnimationEnabled={setAnimationEnabled} packCards={packCards} activeCard={activeCard} setActiveCard={setActiveCard} faceDownCards={faceDownCards} toggleCardFace={toggleCardFace} savedCards={savedCards} addCurrentAndNext={addCurrentAndNext} nextCard={nextCard} previousCard={previousCard} history={history} collectionTotal={Object.values(collection).reduce((sum, qty) => sum + qty, 0)} />}
+      {view === 'packs' && <PackView viewMode={viewMode} setViewMode={setViewMode} opening={opening} opened={opened} openPack={openPack} saved={saved} savePack={savePack} goBuilder={() => setView('builder')} sets={sets} selectedSetCode={selectedSetCode} setSelectedSetCode={setSelectedSetCode} selectedSet={selectedSet} products={products} selectedProductCode={selectedProductCode} setSelectedProductCode={setSelectedProductCode} selectedProduct={selectedProduct} dataLoading={dataLoading} dataError={dataError} animationEnabled={animationEnabled} setAnimationEnabled={setAnimationEnabled} packCards={packCards} activeCard={activeCard} setActiveCard={setActiveCard} faceDownCards={faceDownCards} toggleCardFace={toggleCardFace} revealAllCards={revealAllCards} savedCards={savedCards} addCurrentAndNext={addCurrentAndNext} nextCard={nextCard} previousCard={previousCard} history={history} collectionTotal={Object.values(collection).reduce((sum, qty) => sum + qty, 0)} />}
       {view === 'collection' && <CollectionView search={search} setSearch={setSearch} cards={filteredCards} collection={collection} setCollection={setCollection} addToDeck={addToDeck} goBuilder={() => setView('builder')} />}
       {view === 'builder' && <BuilderView search={search} setSearch={setSearch} cards={filteredCards} deck={deck} setDeck={setDeck} deckCount={deckCount} addToDeck={addToDeck} />}
 
@@ -203,29 +204,45 @@ type PackViewProps = {
   products: BoosterProduct[]; selectedProductCode: string; setSelectedProductCode: (code: string) => void;
   selectedProduct: BoosterProduct | null; dataLoading: boolean; dataError: string | null;
   animationEnabled: boolean; setAnimationEnabled: (enabled: boolean) => void; packCards: Card[]; activeCard: number;
-  setActiveCard: (index: number) => void; faceDownCards: Set<string>; toggleCardFace: (card: Card) => void;
+  setActiveCard: (index: number) => void; faceDownCards: Set<string>; toggleCardFace: (card: Card) => void; revealAllCards: () => void;
   savedCards: Set<string>; addCurrentAndNext: () => void | Promise<void>; nextCard: () => void; previousCard: () => void;
   history: string[]; collectionTotal: number;
 };
 
-function PackView({ viewMode, setViewMode, opening, opened, openPack, saved, savePack, goBuilder, sets, selectedSetCode, setSelectedSetCode, selectedSet, products, selectedProductCode, setSelectedProductCode, selectedProduct, dataLoading, dataError, animationEnabled, setAnimationEnabled, packCards, activeCard, setActiveCard, faceDownCards, toggleCardFace, savedCards, addCurrentAndNext, nextCard, previousCard, history, collectionTotal }: PackViewProps) {
+function PackView({ viewMode, setViewMode, opening, opened, openPack, saved, savePack, goBuilder, sets, selectedSetCode, setSelectedSetCode, selectedSet, products, selectedProductCode, setSelectedProductCode, selectedProduct, dataLoading, dataError, animationEnabled, setAnimationEnabled, packCards, activeCard, setActiveCard, faceDownCards, toggleCardFace, revealAllCards, savedCards, addCurrentAndNext, nextCard, previousCard, history, collectionTotal }: PackViewProps) {
   const currentCard = packCards[activeCard];
   const visibleCards = viewMode === 'automatic' ? (currentCard ? [currentCard] : []) : packCards;
   const foilCount = packCards.filter((card) => card.foil).length;
   const [packPose, setPackPose] = useState({ x: 0, y: 0, rotateX: 0, rotateY: 0, dragging: false, anchorX: 0, anchorY: 0, baseX: 0, baseY: 0 });
+  const [cardDrag, setCardDrag] = useState({ x: 0, dragging: false, settling: false, anchorX: 0 });
+  const [packImageFailed, setPackImageFailed] = useState(false);
+  const packMovedRef = useRef(false);
+  const cardGestureRef = useRef(false);
+  const cardXRef = useRef(0);
+  const hasOriginalPackImage = Boolean(selectedProduct?.image) && !packImageFailed;
+  const packImage = hasOriginalPackImage ? selectedProduct!.image! : 'assets/vaultforge-booster.webp';
 
   useEffect(() => {
     setPackPose({ x: 0, y: 0, rotateX: 0, rotateY: 0, dragging: false, anchorX: 0, anchorY: 0, baseX: 0, baseY: 0 });
+    setPackImageFailed(false);
   }, [selectedSetCode, selectedProductCode]);
+
+  useEffect(() => {
+    setCardDrag({ x: 0, dragging: false, settling: false, anchorX: 0 });
+    cardGestureRef.current = false;
+    cardXRef.current = 0;
+  }, [activeCard]);
 
   function handlePackPointerDown(event: React.PointerEvent<HTMLDivElement>) {
     event.currentTarget.setPointerCapture(event.pointerId);
+    packMovedRef.current = false;
     setPackPose((pose) => ({ ...pose, dragging: true, anchorX: event.clientX, anchorY: event.clientY, baseX: pose.x, baseY: pose.y }));
   }
   function handlePackPointerMove(event: React.PointerEvent<HTMLDivElement>) {
     if (packPose.dragging) {
       const dx = event.clientX - packPose.anchorX;
       const dy = event.clientY - packPose.anchorY;
+      if (Math.abs(dx) + Math.abs(dy) > 6) packMovedRef.current = true;
       setPackPose((pose) => ({ ...pose, x: Math.max(-135, Math.min(135, pose.baseX + dx)), y: Math.max(-70, Math.min(70, pose.baseY + dy)), rotateX: Math.max(-14, Math.min(14, -dy / 7)), rotateY: Math.max(-18, Math.min(18, dx / 7)) }));
       return;
     }
@@ -238,6 +255,37 @@ function PackView({ viewMode, setViewMode, opening, opened, openPack, saved, sav
     if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
     setPackPose((pose) => ({ ...pose, dragging: false, rotateX: 0, rotateY: 0 }));
   }
+  function handlePackClick() { if (!packMovedRef.current) openPack(); }
+  function handleCardPointerDown(event: React.PointerEvent<HTMLElement>) {
+    event.currentTarget.setPointerCapture(event.pointerId);
+    cardGestureRef.current = false;
+    cardXRef.current = 0;
+    setCardDrag({ x: 0, dragging: true, settling: false, anchorX: event.clientX });
+  }
+  function handleCardPointerMove(event: React.PointerEvent<HTMLElement>) {
+    if (!cardDrag.dragging) return;
+    const x = event.clientX - cardDrag.anchorX;
+    cardXRef.current = x;
+    if (Math.abs(x) > 7) cardGestureRef.current = true;
+    setCardDrag((drag) => ({ ...drag, x: Math.max(-230, Math.min(230, x)) }));
+  }
+  function handleCardPointerUp(event: React.PointerEvent<HTMLElement>) {
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
+    if (Math.abs(cardXRef.current) >= 72) {
+      const direction = cardXRef.current < 0 ? -1 : 1;
+      cardGestureRef.current = true;
+      setCardDrag((drag) => ({ ...drag, x: direction * 620, dragging: false, settling: true }));
+      window.setTimeout(() => { void Promise.resolve(addCurrentAndNext()).finally(() => { cardXRef.current = 0; setCardDrag({ x: 0, dragging: false, settling: false, anchorX: 0 }); }); }, 190);
+      return;
+    }
+    cardXRef.current = 0;
+    setCardDrag({ x: 0, dragging: false, settling: true, anchorX: 0 });
+    window.setTimeout(() => setCardDrag((drag) => ({ ...drag, settling: false })), 180);
+  }
+  function handleCardClick(card: Card) {
+    if (cardGestureRef.current) { cardGestureRef.current = false; return; }
+    toggleCardFace(card);
+  }
   function resetPackPose() { setPackPose({ x: 0, y: 0, rotateX: 0, rotateY: 0, dragging: false, anchorX: 0, anchorY: 0, baseX: 0, baseY: 0 }); }
   return <div className="mx-auto grid max-w-[1600px] grid-cols-1 gap-0 xl:grid-cols-[300px_minmax(0,1fr)_300px]">
     <aside className="border-white/8 p-5 xl:min-h-[calc(100vh-64px)] xl:border-r xl:p-6">
@@ -247,7 +295,7 @@ function PackView({ viewMode, setViewMode, opening, opened, openPack, saved, sav
         <label className="control-label">Producto<div className="native-select-wrap"><select value={selectedProductCode} onChange={(event) => setSelectedProductCode(event.target.value)} disabled={dataLoading || products.length === 0} aria-label="Producto sellado">{dataLoading && <option value={selectedProductCode}>Cargando productos…</option>}{!dataLoading && products.map((product) => <option key={product.code} value={product.code}>{product.name} · {product.cardCount} cartas</option>)}</select><ChevronDown /></div></label>
         <div className="animation-toggle"><div><strong>Animación de apertura</strong><span>Desactívala para abrir al instante</span></div><Switch checked={animationEnabled} onCheckedChange={setAnimationEnabled} aria-label="Activar animación de apertura" /></div>
       </div>
-      <Button onClick={openPack} disabled={opening || dataLoading || !selectedProduct} className="mt-7 h-12 w-full bg-amber-300 text-sm font-bold text-[#17150e] shadow-[0_12px_30px_-12px_rgba(252,211,77,.75)] hover:bg-amber-200"><Sparkles />{opening ? 'Abriendo…' : dataLoading ? 'Cargando datos…' : `Abrir ${selectedProduct?.name ?? 'sobre'}`}</Button>
+      <Button onClick={openPack} disabled={opening || dataLoading || !selectedProduct} className="mt-7 h-12 w-full bg-amber-300 text-sm font-bold text-[#17150e] shadow-[0_12px_30px_-12px_rgba(252,211,77,.75)] hover:bg-amber-200"><Sparkles />{opening ? 'Abriendo…' : dataLoading ? 'Cargando datos…' : 'Abrir sobre'}</Button>
       {dataError ? <p className="mt-3 text-center text-xs leading-relaxed text-red-300">{dataError}</p> : <p className="mt-3 text-center text-xs leading-relaxed text-stone-500">Slots, rarezas, foil y probabilidades se generan desde la colación publicada del producto.</p>}
       <div className="mt-8 border-t border-white/7 pt-5"><p className="eyebrow">Historial reciente</p>{history.map((item, index) => <div key={item} className="history-row"><span>{item}</span><small>{index === 0 && packCards.length ? 'ahora' : `hace ${index * 4 + 2} min`}</small></div>)}</div>
     </aside>
@@ -256,28 +304,29 @@ function PackView({ viewMode, setViewMode, opening, opened, openPack, saved, sav
       <div className="mb-7 flex flex-wrap items-end justify-between gap-4"><div><p className="eyebrow">Apertura #{opened}</p><h2 className="mt-1 font-display text-3xl font-semibold tracking-tight">{selectedProduct?.name ?? 'Elige un producto'} · {selectedSet?.name ?? selectedSetCode}</h2><p className="mt-1 text-sm text-stone-500">{packCards.length || selectedProduct?.cardCount || 0} cartas · orden de slots conservado</p></div><div className="view-switcher" aria-label="Modo de visualización"><button onClick={() => setViewMode('automatic')} data-active={viewMode === 'automatic'}><WandSparkles />Automatic</button><button onClick={() => setViewMode('stack')} data-active={viewMode === 'stack'}><Layers3 />Card stack</button><button onClick={() => setViewMode('grid')} data-active={viewMode === 'grid'}><Grid2X2 />Card grid</button></div></div>
       <div className={`pack-stage pack-stage-${viewMode} ${opening ? 'is-opening' : ''}`}>
         <div className="stage-glow" />
-        {opening && <div className="booster-opening" aria-live="polite"><div className="booster-wrapper"><img className="pack-main-image" src="assets/vaultforge-booster.webp" alt="" /><div className="pack-dynamic-label"><small>{selectedSetCode}</small><strong>{selectedProduct?.name}</strong></div><div className="pack-top-piece"><img src="assets/vaultforge-booster.webp" alt="" /></div><span className="cut-track" /><span className="cut-blade"><Scissors /></span><div className="cards-emerging"><img src="assets/vaultforge-card-back.webp" alt="Reverso de una carta" /></div></div><p>Cortando el cierre superior y extrayendo las cartas…</p></div>}
-        {!opening && packCards.length === 0 && selectedProduct && <div className="interactive-pack-area"><div role="button" tabIndex={0} className={`interactive-pack ${packPose.dragging ? 'is-dragging' : ''}`} aria-label="Sobre interactivo. Arrástralo o mueve el puntero para girarlo" onPointerDown={handlePackPointerDown} onPointerMove={handlePackPointerMove} onPointerUp={handlePackPointerUp} onPointerCancel={handlePackPointerUp} onPointerLeave={() => { if (!packPose.dragging) setPackPose((pose) => ({ ...pose, rotateX: 0, rotateY: 0 })); }} onDoubleClick={openPack} style={{ transform: `translate3d(${packPose.x}px,${packPose.y}px,0) rotateX(${packPose.rotateX}deg) rotateY(${packPose.rotateY}deg)` }}><img src="assets/vaultforge-booster.webp" alt={`Sobre ${selectedProduct.name} de ${selectedSet?.name ?? selectedSetCode}`} draggable={false} /><div className="pack-dynamic-label"><small>{selectedSetCode}</small><strong>{selectedProduct.name}</strong></div><span className="pack-grab-hint"><Move /> Arrastra para mover y girar</span></div><div className="pack-ready-actions"><button onClick={resetPackPose}>Centrar</button><Button onClick={openPack} className="bg-amber-300 font-bold text-[#17150e] hover:bg-amber-200"><Scissors />Cortar y abrir</Button></div></div>}
+        {opening && <div className="booster-opening" aria-live="polite"><div className={`booster-wrapper ${hasOriginalPackImage ? 'has-original-art' : ''}`}><div className="pack-body"><img className={`pack-product-image ${hasOriginalPackImage ? 'is-tcg-image' : ''}`} src={packImage} alt="" onError={() => setPackImageFailed(true)} /></div>{!hasOriginalPackImage && <div className="pack-dynamic-label"><small>{selectedSetCode}</small><strong>{selectedProduct?.name}</strong></div>}<div className="pack-top-piece"><img className={hasOriginalPackImage ? 'is-tcg-image' : ''} src={packImage} alt="" onError={() => setPackImageFailed(true)} /></div><span className="cut-track" /><span className="cut-blade"><Scissors /></span><div className="cards-emerging"><img src="assets/magic-card-back.png" alt="Reverso de una carta de Magic" /></div></div><p>Cortando el cierre superior y extrayendo las cartas…</p></div>}
+        {!opening && packCards.length === 0 && selectedProduct && <div className="interactive-pack-area"><div role="button" tabIndex={0} className={`interactive-pack ${packPose.dragging ? 'is-dragging' : ''} ${hasOriginalPackImage ? 'has-original-art' : ''}`} aria-label="Sobre interactivo. Haz clic para abrirlo o arrástralo para moverlo y girarlo" onPointerDown={handlePackPointerDown} onPointerMove={handlePackPointerMove} onPointerUp={handlePackPointerUp} onPointerCancel={handlePackPointerUp} onPointerLeave={() => { if (!packPose.dragging) setPackPose((pose) => ({ ...pose, rotateX: 0, rotateY: 0 })); }} onClick={handlePackClick} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') openPack(); }} style={{ transform: `translate3d(${packPose.x}px,${packPose.y}px,0) rotateX(${packPose.rotateX}deg) rotateY(${packPose.rotateY}deg)` }}><img className={hasOriginalPackImage ? 'is-tcg-image' : ''} src={packImage} alt={`Sobre ${selectedProduct.name} de ${selectedSet?.name ?? selectedSetCode}`} draggable={false} onError={() => setPackImageFailed(true)} />{!hasOriginalPackImage && <div className="pack-dynamic-label"><small>{selectedSetCode}</small><strong>{selectedProduct.name}</strong></div>}<span className="pack-grab-hint"><Move /> Arrastra o pulsa para abrir</span></div><div className="pack-ready-actions"><button onClick={resetPackPose}>Centrar</button><Button onClick={openPack} className="bg-amber-300 font-bold text-[#17150e] hover:bg-amber-200"><Scissors />Abrir sobre</Button></div></div>}
         {!opening && packCards.length === 0 && !selectedProduct && <div className="empty-pack-stage"><PackageOpen /><strong>Tu sobre aparecerá aquí</strong><span>Selecciona una edición y un producto para generar cartas reales.</span></div>}
         {!opening && packCards.length > 0 && <div className="cards-shell">{visibleCards.map((card, index) => {
           const key = card.id ?? `${card.name}-${index}`;
           const actualIndex = viewMode === 'automatic' ? activeCard : index;
           const faceDown = faceDownCards.has(key);
           const isSaved = savedCards.has(key);
-          return <article role="button" tabIndex={0} aria-label={`${faceDown ? 'Revelar' : 'Ocultar'} ${card.name}`} onClick={() => toggleCardFace(card)} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); toggleCardFace(card); } }} className={`mtg-card ${card.foil ? 'is-foil' : ''} ${faceDown ? 'is-face-down' : ''} ${isSaved ? 'is-collected' : ''}`} key={key} style={{ '--card-index': actualIndex, '--card-center': Math.floor(packCards.length / 2) } as React.CSSProperties}><div className="card-flipper"><div className="card-face card-front"><img src={card.image} alt={card.name} />{card.foil && <span className="foil-sheen" aria-hidden="true" />}{isSaved && <span className="collected-mark"><Check />Colección</span>}</div><div className="card-face card-back"><img src="assets/vaultforge-card-back.webp" alt="Reverso de la carta" /></div></div></article>;
+          const automaticGesture = viewMode === 'automatic';
+          return <article role="button" tabIndex={0} aria-label={`${faceDown ? 'Revelar' : 'Ocultar'} ${card.name}. Desliza a izquierda o derecha para añadirla.`} onClick={() => handleCardClick(card)} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); toggleCardFace(card); } }} onPointerDown={automaticGesture ? handleCardPointerDown : undefined} onPointerMove={automaticGesture ? handleCardPointerMove : undefined} onPointerUp={automaticGesture ? handleCardPointerUp : undefined} onPointerCancel={automaticGesture ? handleCardPointerUp : undefined} className={`mtg-card ${card.foil ? 'is-foil' : ''} ${faceDown ? 'is-face-down' : ''} ${isSaved ? 'is-collected' : ''} ${automaticGesture && (cardDrag.dragging || cardDrag.settling) ? 'is-card-dragging' : ''} ${automaticGesture && cardDrag.settling ? 'is-card-settling' : ''}`} key={key} style={{ '--card-index': actualIndex, '--card-center': Math.floor(packCards.length / 2), '--swipe-x': `${automaticGesture ? cardDrag.x : 0}px`, '--swipe-rotate': `${automaticGesture ? cardDrag.x / 22 : 0}deg` } as React.CSSProperties}>{cardDrag.x < -12 && <span className="swipe-save-hint swipe-save-left"><Check />Guardar</span>}{cardDrag.x > 12 && <span className="swipe-save-hint swipe-save-right"><Check />Guardar</span>}<div className="card-flipper"><div className="card-face card-front"><img src={card.image} alt={card.name} />{card.foil && <span className="foil-sheen" aria-hidden="true" />}{isSaved && <span className="collected-mark"><Check />Colección</span>}</div><div className="card-face card-back"><img src="assets/magic-card-back.png" alt="Reverso original de Magic: The Gathering" /></div></div></article>;
         })}</div>}
         {!opening && currentCard && <div className="stage-caption"><div><span className="rarity-gem" /><strong>{faceDownCards.has(currentCard.id ?? currentCard.name) ? 'Carta sin revelar' : currentCard.name}</strong></div><span>{faceDownCards.has(currentCard.id ?? currentCard.name) ? `Slot ${activeCard + 1}` : `${currentCard.slot} · ${currentCard.set}${currentCard.foil ? ' · FOIL' : ''}`}</span></div>}
         {!opening && viewMode === 'automatic' && currentCard && <div className="automatic-controls"><button onClick={previousCard} disabled={activeCard === 0} aria-label="Carta anterior"><ChevronLeft /></button><span>{activeCard + 1} / {packCards.length}</span><button onClick={nextCard} disabled={activeCard === packCards.length - 1} aria-label="Carta siguiente"><ChevronRight /></button></div>}
       </div>
-      {packCards.length > 0 && <div className="reveal-actions"><Button variant="outline" onClick={() => currentCard && toggleCardFace(currentCard)}><RotateCw />{currentCard && faceDownCards.has(currentCard.id ?? currentCard.name) ? 'Revelar carta' : 'Volver a ocultar'}</Button>{viewMode === 'automatic' && <><Button onClick={addCurrentAndNext} disabled={!currentCard || savedCards.has(currentCard.id ?? currentCard.name)} className="bg-amber-300 font-bold text-[#17150e] hover:bg-amber-200"><CirclePlus />{currentCard && savedCards.has(currentCard.id ?? currentCard.name) ? 'Añadida' : 'Añadir y siguiente'}</Button><Button variant="ghost" onClick={nextCard} disabled={activeCard === packCards.length - 1}><SkipForward />Omitir</Button></>}</div>}
+      {packCards.length > 0 && <div className="reveal-actions"><Button variant="outline" onClick={() => currentCard && toggleCardFace(currentCard)}><RotateCw />{currentCard && faceDownCards.has(currentCard.id ?? currentCard.name) ? 'Revelar carta' : 'Volver a ocultar'}</Button><Button variant="outline" onClick={revealAllCards} disabled={faceDownCards.size === 0}><Sparkles />Revelar todas</Button><Button onClick={savePack} disabled={saved} className="bg-emerald-300 font-bold text-[#102018] hover:bg-emerald-200"><Archive />{saved ? 'Todas añadidas' : 'Añadir todas'}</Button>{viewMode === 'automatic' && <><Button onClick={addCurrentAndNext} disabled={!currentCard || savedCards.has(currentCard.id ?? currentCard.name)} className="bg-amber-300 font-bold text-[#17150e] hover:bg-amber-200"><CirclePlus />{currentCard && savedCards.has(currentCard.id ?? currentCard.name) ? 'Añadida' : 'Añadir y siguiente'}</Button><Button variant="ghost" onClick={nextCard} disabled={activeCard === packCards.length - 1}><SkipForward />Omitir</Button></>}</div>}
       <div className="mt-5 flex flex-wrap items-center justify-between gap-3 text-xs text-stone-500"><p><strong className="text-stone-300">{packCards.length || selectedProduct?.cardCount || 0} cartas</strong>{packCards.length ? ` · ${foilCount} foil en esta apertura` : ' · esperando apertura'}</p><p>{packCards.length ? 'Pulsa una carta para voltearla y revelar el frente' : 'Arrastra el sobre, gíralo y córtalo para abrirlo'}</p></div>
     </section>
 
     <aside className="p-5 xl:min-h-[calc(100vh-64px)] xl:border-l xl:border-white/8 xl:p-6">
       <div className="flex items-center justify-between"><div><p className="eyebrow">Tu cuenta</p><h2 className="mt-1 font-display text-xl font-semibold">Colección</h2></div><Archive className="size-5 text-stone-500" /></div>
       <div className="mt-5 rounded-2xl border border-white/8 bg-white/[.025] p-4"><div className="flex items-center justify-between"><span className="text-sm text-stone-400">Cartas guardadas</span><strong className="font-display text-2xl">{collectionTotal}</strong></div><div className="mt-4 h-1.5 overflow-hidden rounded-full bg-white/6"><span className="block h-full w-[68%] rounded-full bg-amber-300" /></div><div className="mt-2 flex justify-between text-[11px] text-stone-500"><span>{savedCards.size} de este sobre</span><span>{foilCount} foil abiertas</span></div></div>
-      <div className="mt-6 space-y-3"><div className="flex items-center justify-between"><h3 className="text-sm font-semibold">Contenido del sobre</h3><span className="text-xs text-stone-500">{packCards.length} slots</span></div><div className="pack-slot-list">{packCards.map((card, index) => { const key = card.id ?? `${card.name}-${index}`; const faceDown = faceDownCards.has(key); return <button onClick={() => { setViewMode('automatic'); setActiveCard(index); }} key={key} className={`mini-card-row ${index === activeCard ? 'is-active' : ''}`}><img src={faceDown ? 'assets/vaultforge-card-back.webp' : card.image} alt="" /><div className="min-w-0 flex-1"><strong>{faceDown ? `Carta ${index + 1} sin revelar` : card.name}</strong><span>{faceDown ? `Slot ${index + 1}` : `${card.slot} · ${card.rarity}`}</span></div>{savedCards.has(key) && <Check className="size-3 text-emerald-300" />}</button>; })}</div></div>
-      <div className="mt-7 rounded-2xl border border-emerald-300/12 bg-emerald-300/[.035] p-4"><div className="flex items-center gap-2 text-sm font-semibold text-emerald-200"><Sparkles className="size-4" /> Siguiente paso</div><p className="mt-2 text-xs leading-relaxed text-stone-400">Añade las cartas una por una en Automatic o guarda todo el sobre.</p><Button onClick={savePack} disabled={saved || packCards.length === 0} variant="outline" className="mt-4 w-full border-emerald-300/20 bg-emerald-300/5 text-emerald-100">{saved ? <><Check />Guardadas</> : `Guardar ${Math.max(0, packCards.length - savedCards.size)} cartas`}</Button>{saved && <button onClick={goBuilder} className="mt-3 flex w-full items-center justify-center gap-2 text-xs font-semibold text-amber-200">Ir al constructor <ArrowRight className="size-3" /></button>}</div>
+      <div className="mt-6 space-y-3"><div className="flex items-center justify-between"><h3 className="text-sm font-semibold">Contenido del sobre</h3><span className="text-xs text-stone-500">{packCards.length} slots</span></div><div className="pack-slot-list">{packCards.map((card, index) => { const key = card.id ?? `${card.name}-${index}`; const faceDown = faceDownCards.has(key); return <button onClick={() => { setViewMode('automatic'); setActiveCard(index); }} key={key} className={`mini-card-row ${index === activeCard ? 'is-active' : ''}`}><img src={faceDown ? 'assets/magic-card-back.png' : card.image} alt="" /><div className="min-w-0 flex-1"><strong>{faceDown ? `Carta ${index + 1} sin revelar` : card.name}</strong><span>{faceDown ? `Slot ${index + 1}` : `${card.slot} · ${card.rarity}`}</span></div>{savedCards.has(key) && <Check className="size-3 text-emerald-300" />}</button>; })}</div></div>
+      <div className="mt-7 rounded-2xl border border-emerald-300/12 bg-emerald-300/[.035] p-4"><div className="flex items-center gap-2 text-sm font-semibold text-emerald-200"><Sparkles className="size-4" /> Siguiente paso</div><p className="mt-2 text-xs leading-relaxed text-stone-400">Desliza una carta a cualquier lado para guardarla o añade todo el sobre.</p><Button onClick={savePack} disabled={saved || packCards.length === 0} variant="outline" className="mt-4 w-full border-emerald-300/20 bg-emerald-300/5 text-emerald-100">{saved ? <><Check />Todas añadidas</> : `Añadir ${Math.max(0, packCards.length - savedCards.size)} a la colección`}</Button>{saved && <button onClick={goBuilder} className="mt-3 flex w-full items-center justify-center gap-2 text-xs font-semibold text-amber-200">Ir al constructor <ArrowRight className="size-3" /></button>}</div>
     </aside>
   </div>;
 }

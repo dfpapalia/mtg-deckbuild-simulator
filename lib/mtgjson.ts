@@ -18,6 +18,7 @@ export type SealedProduct = {
   category: string;
   subtype?: string;
   cardCount?: number;
+  identifiers?: { tcgplayerProductId?: string };
   contents?: { pack?: PackReference[]; sealed?: SealedReference[] };
 };
 
@@ -61,6 +62,7 @@ export type BoosterProduct = {
   name: string;
   cardCount: number;
   subtype: string;
+  image: string | null;
 };
 
 export type OpenedCard = {
@@ -122,6 +124,7 @@ export function getBoosterProducts(set: MtgSetData): BoosterProduct[] {
         name: product.name.replace(new RegExp(`^${escapeRegExp(set.name)}\\s*`, 'i'), ''),
         cardCount: product.cardCount ?? countCards(config),
         subtype: product.subtype ?? pack.code,
+        image: product.identifiers?.tcgplayerProductId ? tcgplayerProductImage(product.identifiers.tcgplayerProductId) : null,
       });
     }
   }
@@ -216,6 +219,10 @@ function scryfallImage(id: string) {
 
 function namedImage(name: string) {
   return `https://api.scryfall.com/cards/named?format=image&version=normal&exact=${encodeURIComponent(name)}`;
+}
+
+function tcgplayerProductImage(id: string) {
+  return `https://tcgplayer-cdn.tcgplayer.com/product/${id}_in_1000x1000.jpg`;
 }
 
 function humanize(value: string) {
