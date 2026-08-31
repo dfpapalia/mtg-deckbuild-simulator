@@ -5,6 +5,6 @@ import '../app/globals.css';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <PackStudio userName="Modo demo" staticDemo />
+    <PackStudio userName="Colección local" staticDemo />
   </React.StrictMode>,
 );

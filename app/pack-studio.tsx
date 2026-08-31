@@ -76,6 +76,15 @@ export function PackStudio({ userName, signInPath = '/signin-with-chatgpt?return
   }, [animationEnabled]);
 
   useEffect(() => {
+    const preference = window.localStorage.getItem('vaultforge:view-mode');
+    if (preference === 'automatic' || preference === 'stack' || preference === 'grid') setViewMode(preference);
+  }, []);
+
+  useEffect(() => {
+    window.localStorage.setItem('vaultforge:view-mode', viewMode);
+  }, [viewMode]);
+
+  useEffect(() => {
     let cancelled = false;
     setDataLoading(true);
     setDataError(null);
@@ -103,7 +112,6 @@ export function PackStudio({ userName, signInPath = '/signin-with-chatgpt?return
       setActiveCard(0);
       setSavedCards(new Set());
       setFaceDownCards(new Set(generated.map((card) => card.id ?? card.name)));
-      setViewMode('automatic');
       setOpening(animationEnabled);
       const historyLabel = `${selectedSet.code} · ${selectedProduct?.subtype ?? selectedProductCode}`;
       setHistory((current) => [historyLabel, ...current.filter((item) => item !== historyLabel)].slice(0, 3));
@@ -142,7 +150,7 @@ export function PackStudio({ userName, signInPath = '/signin-with-chatgpt?return
   }
   async function savePack() {
     const ok = await saveCards(packCards);
-    if (ok) flash(`${packCards.length} cartas añadidas a ${staticDemo ? 'la colección de demostración' : 'tu colección'}`);
+    if (ok) flash(`${packCards.length} cartas añadidas a ${staticDemo ? 'la colección local' : 'tu colección'}`);
   }
   async function addCurrentAndNext(cardIndex = activeCard) {
     const current = packCards[cardIndex];
@@ -167,7 +175,6 @@ export function PackStudio({ userName, signInPath = '/signin-with-chatgpt?return
           <button onClick={() => setView('packs')} className="flex items-center gap-2.5" aria-label="Vaultforge — inicio">
             <span className="grid size-9 place-items-center rounded-xl border border-amber-300/25 bg-amber-300/10 text-amber-200"><WandSparkles className="size-4" /></span>
             <span className="font-display text-lg font-semibold tracking-tight">Vaultforge</span>
-            <Badge className="hidden border-amber-300/20 bg-amber-300/10 text-amber-200 sm:inline-flex">PROTOTIPO</Badge>
           </button>
           <nav className="ml-4 hidden h-full items-center gap-1 md:flex" aria-label="Navegación principal">
             <NavButton active={view === 'packs'} onClick={() => setView('packs')} icon={<PackageOpen />}>Abrir sobres</NavButton>
@@ -358,7 +365,7 @@ function CollectionView({ search, setSearch, cards, collection, setCollection, a
     <div className="flex flex-wrap items-end justify-between gap-5"><div><p className="eyebrow">Biblioteca personal</p><h1 className="mt-1 font-display text-4xl font-semibold">Mi colección</h1><p className="mt-2 text-sm text-stone-500">Todas las cartas abiertas, tierras básicas y tokens en un solo lugar.</p></div><Button onClick={goBuilder} className="h-10 bg-amber-300 font-bold text-[#17150e] hover:bg-amber-200"><Layers3 /> Construir un mazo</Button></div>
     <div className="stats-grid mt-7"><Stat value={String(total)} label="Cartas totales" detail="+15 esta semana" /><Stat value="196" label="Cartas únicas" detail="de 14 ediciones" /><Stat value="17" label="Cartas foil" detail="6,4% del total" /><Stat value="7" label="Míticas" detail="3 sin usar" /></div>
     <div className="toolbar mt-7"><div className="search-field"><Search /><input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar por nombre, tipo o edición…" /><kbd>⌘ K</kbd></div><Button variant="outline" className="border-white/10 bg-white/[.025] text-stone-300"><Filter />Filtros</Button><button className="select-compact">Más recientes <ChevronDown /></button></div>
-    <div className="collection-layout mt-5"><aside className="filter-panel"><FilterGroup title="Color" items={['Blanco', 'Azul', 'Negro', 'Rojo', 'Verde', 'Incoloro']} /><FilterGroup title="Tipo" items={['Criatura', 'Instantáneo', 'Conjuro', 'Artefacto', 'Tierra']} /><FilterGroup title="Rareza" items={['Mítica', 'Rara', 'Infrecuente', 'Común']} /></aside><section><div className="mb-3 flex items-center justify-between"><p className="text-xs text-stone-500">Mostrando <strong className="text-stone-300">{cards.length}</strong> cartas del prototipo</p><button className="text-xs text-stone-500"><SlidersHorizontal className="mr-1 inline size-3" />Agrupar por edición</button></div><div className="collection-grid">{cards.map((card) => <article className="collection-card" key={card.name}><div className="card-image-wrap"><img src={card.image} alt={card.name} />{card.foil && <span className="foil-sheen" />}<button onClick={() => addToDeck(card)} className="quick-add" aria-label={`Añadir ${card.name} al mazo`}><CirclePlus /></button><span className={`rarity rarity-${card.rarity.toLowerCase().replace('í','i')}`}>{card.rarity}</span></div><div className="collection-card-info"><strong>{card.name}</strong><span>{card.setName} · {card.set.split(' · ')[1]}</span><div><small>{card.type} · {card.mana}</small><div className="stepper"><button onClick={() => adjust(card.name, -1)}><Minus /></button><b>{collection[card.name] ?? 0}</b><button onClick={() => adjust(card.name, 1)}><Plus /></button></div></div></div></article>)}</div></section></div>
+    <div className="collection-layout mt-5"><aside className="filter-panel"><FilterGroup title="Color" items={['Blanco', 'Azul', 'Negro', 'Rojo', 'Verde', 'Incoloro']} /><FilterGroup title="Tipo" items={['Criatura', 'Instantáneo', 'Conjuro', 'Artefacto', 'Tierra']} /><FilterGroup title="Rareza" items={['Mítica', 'Rara', 'Infrecuente', 'Común']} /></aside><section><div className="mb-3 flex items-center justify-between"><p className="text-xs text-stone-500">Mostrando <strong className="text-stone-300">{cards.length}</strong> cartas de tu colección</p><button className="text-xs text-stone-500"><SlidersHorizontal className="mr-1 inline size-3" />Agrupar por edición</button></div><div className="collection-grid">{cards.map((card) => <article className="collection-card" key={card.name}><div className="card-image-wrap"><img src={card.image} alt={card.name} />{card.foil && <span className="foil-sheen" />}<button onClick={() => addToDeck(card)} className="quick-add" aria-label={`Añadir ${card.name} al mazo`}><CirclePlus /></button><span className={`rarity rarity-${card.rarity.toLowerCase().replace('í','i')}`}>{card.rarity}</span></div><div className="collection-card-info"><strong>{card.name}</strong><span>{card.setName} · {card.set.split(' · ')[1]}</span><div><small>{card.type} · {card.mana}</small><div className="stepper"><button onClick={() => adjust(card.name, -1)}><Minus /></button><b>{collection[card.name] ?? 0}</b><button onClick={() => adjust(card.name, 1)}><Plus /></button></div></div></div></article>)}</div></section></div>
   </div>;
 }
 
