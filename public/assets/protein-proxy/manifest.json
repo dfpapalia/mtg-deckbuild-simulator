@@ -1,0 +1,907 @@
+{
+  "title": "Lorehold Proteína+ — GymBros del Más Allá",
+  "uniqueDesigns": 85,
+  "physicalCards": 100,
+  "cards": [
+    {
+      "index": 1,
+      "copy": 1,
+      "quantity": 1,
+      "original": "Quintorius, History Chaser",
+      "proxy": "Quintorius, el Proteínico",
+      "category": "commander",
+      "file": "assets/protein-proxy/cards/quintorius-history-chaser.webp"
+    },
+    {
+      "index": 2,
+      "copy": 1,
+      "quantity": 1,
+      "original": "Angel of Indemnity",
+      "proxy": "Ángel de la Repetición Pendiente",
+      "category": "creature",
+      "file": "assets/protein-proxy/cards/angel-of-indemnity.webp"
+    },
+    {
+      "index": 3,
+      "copy": 1,
+      "quantity": 1,
+      "original": "Anger",
+      "proxy": "Rabia de Preentreno",
+      "category": "creature",
+      "file": "assets/protein-proxy/cards/anger.webp"
+    },
+    {
+      "index": 4,
+      "copy": 1,
+      "quantity": 1,
+      "original": "Ao, the Dawn Sky",
+      "proxy": "Ao, el Spotter del Alba",
+      "category": "creature",
+      "file": "assets/protein-proxy/cards/ao-the-dawn-sky.webp"
+    },
+    {
+      "index": 5,
+      "copy": 1,
+      "quantity": 1,
+      "original": "Atsushi, the Blazing Sky",
+      "proxy": "Atsushi, Cardio Abrasador",
+      "category": "creature",
+      "file": "assets/protein-proxy/cards/atsushi-the-blazing-sky.webp"
+    },
+    {
+      "index": 6,
+      "copy": 1,
+      "quantity": 1,
+      "original": "Augusta, Order Returned",
+      "proxy": "Augusta, Rutina Recuperada",
+      "category": "creature",
+      "file": "assets/protein-proxy/cards/augusta-order-returned.webp"
+    },
+    {
+      "index": 7,
+      "copy": 1,
+      "quantity": 1,
+      "original": "Balefire Liege",
+      "proxy": "Soberano del Press Ardiente",
+      "category": "creature",
+      "file": "assets/protein-proxy/cards/balefire-liege.webp"
+    },
+    {
+      "index": 8,
+      "copy": 1,
+      "quantity": 1,
+      "original": "Claim Jumper",
+      "proxy": "Saltador de Máquina Ocupada",
+      "category": "creature",
+      "file": "assets/protein-proxy/cards/claim-jumper.webp"
+    },
+    {
+      "index": 9,
+      "copy": 1,
+      "quantity": 1,
+      "original": "Conspiracy Theorist",
+      "proxy": "Teórico de la Ventana Anabólica",
+      "category": "creature",
+      "file": "assets/protein-proxy/cards/conspiracy-theorist.webp"
+    },
+    {
+      "index": 10,
+      "copy": 1,
+      "quantity": 1,
+      "original": "Containment Construct",
+      "proxy": "Máquina de Aislamiento Muscular",
+      "category": "creature",
+      "file": "assets/protein-proxy/cards/containment-construct.webp"
+    },
+    {
+      "index": 11,
+      "copy": 1,
+      "quantity": 1,
+      "original": "Drumbellower",
+      "proxy": "Campanero de la Última Serie",
+      "category": "creature",
+      "file": "assets/protein-proxy/cards/drumbellower.webp"
+    },
+    {
+      "index": 12,
+      "copy": 1,
+      "quantity": 1,
+      "original": "Excava, the Risen Past",
+      "proxy": "Excava, Ganancias Resucitadas",
+      "category": "creature",
+      "file": "assets/protein-proxy/cards/excava-the-risen-past.webp"
+    },
+    {
+      "index": 13,
+      "copy": 1,
+      "quantity": 1,
+      "original": "Guardian of Faith",
+      "proxy": "Guardián de la Fe en el Progreso",
+      "category": "creature",
+      "file": "assets/protein-proxy/cards/guardian-of-faith.webp"
+    },
+    {
+      "index": 14,
+      "copy": 1,
+      "quantity": 1,
+      "original": "Guardian Scalelord",
+      "proxy": "Señor Escamado del Volumen",
+      "category": "creature",
+      "file": "assets/protein-proxy/cards/guardian-scalelord.webp"
+    },
+    {
+      "index": 15,
+      "copy": 1,
+      "quantity": 1,
+      "original": "Hofri Ghostforge",
+      "proxy": "Hofri, Forjador de GymBros",
+      "category": "creature",
+      "file": "assets/protein-proxy/cards/hofri-ghostforge.webp"
+    },
+    {
+      "index": 16,
+      "copy": 1,
+      "quantity": 1,
+      "original": "Kami of Ancient Law",
+      "proxy": "Kami de la Técnica Ancestral",
+      "category": "creature",
+      "file": "assets/protein-proxy/cards/kami-of-ancient-law.webp"
+    },
+    {
+      "index": 17,
+      "copy": 1,
+      "quantity": 1,
+      "original": "Karmic Guide",
+      "proxy": "Guía Kármica del Entreno",
+      "category": "creature",
+      "file": "assets/protein-proxy/cards/karmic-guide.webp"
+    },
+    {
+      "index": 18,
+      "copy": 1,
+      "quantity": 1,
+      "original": "Kirol, History Buff // Pack a Punch",
+      "proxy": "Kirol, Historiador Mamado // Puñetazo Proteico",
+      "category": "creature",
+      "file": "assets/protein-proxy/cards/kirol-history-buff-pack-a-punch.webp"
+    },
+    {
+      "index": 19,
+      "copy": 1,
+      "quantity": 1,
+      "original": "Laelia, the Blade Reforged",
+      "proxy": "Laelia, Físico Reforjado",
+      "category": "creature",
+      "file": "assets/protein-proxy/cards/laelia-the-blade-reforged.webp"
+    },
+    {
+      "index": 20,
+      "copy": 1,
+      "quantity": 1,
+      "original": "Lorehold Archivist // Restore Relic",
+      "proxy": "Archivista del Volumen // Restaurar Mancuerna",
+      "category": "creature",
+      "file": "assets/protein-proxy/cards/lorehold-archivist-restore-relic.webp"
+    },
+    {
+      "index": 21,
+      "copy": 1,
+      "quantity": 1,
+      "original": "Millikin",
+      "proxy": "Molinillo de Avena Arcano",
+      "category": "creature",
+      "file": "assets/protein-proxy/cards/millikin.webp"
+    },
+    {
+      "index": 22,
+      "copy": 1,
+      "quantity": 1,
+      "original": "Moonshaker Cavalry",
+      "proxy": "Caballería Rompelunas",
+      "category": "creature",
+      "file": "assets/protein-proxy/cards/moonshaker-cavalry.webp"
+    },
+    {
+      "index": 23,
+      "copy": 1,
+      "quantity": 1,
+      "original": "Naktamun Lorespinner // Wheel of Fortune",
+      "proxy": "Cronista de Naktamun // Rueda de Rutinas",
+      "category": "creature",
+      "file": "assets/protein-proxy/cards/naktamun-lorespinner-wheel-of-fortune.webp"
+    },
+    {
+      "index": 24,
+      "copy": 1,
+      "quantity": 1,
+      "original": "Quintorius, Field Historian",
+      "proxy": "Quintorius, Historiador del Hierro",
+      "category": "creature",
+      "file": "assets/protein-proxy/cards/quintorius-field-historian.webp"
+    },
+    {
+      "index": 25,
+      "copy": 1,
+      "quantity": 1,
+      "original": "Quintorius, Loremaster",
+      "proxy": "Quintorius, Maestro del Volumen",
+      "category": "creature",
+      "file": "assets/protein-proxy/cards/quintorius-loremaster.webp"
+    },
+    {
+      "index": 26,
+      "copy": 1,
+      "quantity": 1,
+      "original": "Relic Retriever",
+      "proxy": "Recuperador de Discos Perdidos",
+      "category": "creature",
+      "file": "assets/protein-proxy/cards/relic-retriever.webp"
+    },
+    {
+      "index": 27,
+      "copy": 1,
+      "quantity": 1,
+      "original": "Remorseful Cleric",
+      "proxy": "Clérigo del Cheat Meal Arrepentido",
+      "category": "creature",
+      "file": "assets/protein-proxy/cards/remorseful-cleric.webp"
+    },
+    {
+      "index": 28,
+      "copy": 1,
+      "quantity": 1,
+      "original": "Selfless Spirit",
+      "proxy": "GymBro (Spirit) sin Ego",
+      "category": "creature",
+      "file": "assets/protein-proxy/cards/selfless-spirit.webp"
+    },
+    {
+      "index": 29,
+      "copy": 1,
+      "quantity": 1,
+      "original": "Serra Paragon",
+      "proxy": "Paragón de la Proteína Limpia",
+      "category": "creature",
+      "file": "assets/protein-proxy/cards/serra-paragon.webp"
+    },
+    {
+      "index": 30,
+      "copy": 1,
+      "quantity": 1,
+      "original": "Skyclave Apparition",
+      "proxy": "Aparición del Gimnasio Celeste",
+      "category": "creature",
+      "file": "assets/protein-proxy/cards/skyclave-apparition.webp"
+    },
+    {
+      "index": 31,
+      "copy": 1,
+      "quantity": 1,
+      "original": "Spirit of Resilience",
+      "proxy": "GymBro (Spirit) de la Resiliencia",
+      "category": "creature",
+      "file": "assets/protein-proxy/cards/spirit-of-resilience.webp"
+    },
+    {
+      "index": 32,
+      "copy": 1,
+      "quantity": 1,
+      "original": "Squee, Goblin Nabob",
+      "proxy": "Squee, Socio que Nunca se Rinde",
+      "category": "creature",
+      "file": "assets/protein-proxy/cards/squee-goblin-nabob.webp"
+    },
+    {
+      "index": 33,
+      "copy": 1,
+      "quantity": 1,
+      "original": "Sun Titan",
+      "proxy": "Titán del Sol y la Proteína",
+      "category": "creature",
+      "file": "assets/protein-proxy/cards/sun-titan.webp"
+    },
+    {
+      "index": 34,
+      "copy": 1,
+      "quantity": 1,
+      "original": "Teshar, Ancestor's Apostle",
+      "proxy": "Teshar, Apóstol de la Sobrecarga",
+      "category": "creature",
+      "file": "assets/protein-proxy/cards/teshar-ancestors-apostle.webp"
+    },
+    {
+      "index": 35,
+      "copy": 1,
+      "quantity": 1,
+      "original": "Vanguard of the Restless",
+      "proxy": "Vanguardia de los que Nunca Descansan",
+      "category": "creature",
+      "file": "assets/protein-proxy/cards/vanguard-of-the-restless.webp"
+    },
+    {
+      "index": 36,
+      "copy": 1,
+      "quantity": 1,
+      "original": "Venerable Warsinger",
+      "proxy": "Cantora Venerable del Récord Personal",
+      "category": "creature",
+      "file": "assets/protein-proxy/cards/venerable-warsinger.webp"
+    },
+    {
+      "index": 37,
+      "copy": 1,
+      "quantity": 1,
+      "original": "White Orchid Phantom",
+      "proxy": "Fantasma de la Orquídea Whey",
+      "category": "creature",
+      "file": "assets/protein-proxy/cards/white-orchid-phantom.webp"
+    },
+    {
+      "index": 38,
+      "copy": 1,
+      "quantity": 1,
+      "original": "Arcane Signet",
+      "proxy": "Sello Proteína+",
+      "category": "artifact",
+      "file": "assets/protein-proxy/cards/arcane-signet.webp"
+    },
+    {
+      "index": 39,
+      "copy": 1,
+      "quantity": 1,
+      "original": "Archaeomancer's Map",
+      "proxy": "Mapa de Gimnasios Arqueománticos",
+      "category": "artifact",
+      "file": "assets/protein-proxy/cards/archaeomancers-map.webp"
+    },
+    {
+      "index": 40,
+      "copy": 1,
+      "quantity": 1,
+      "original": "Bitterthorn, Nissa's Animus",
+      "proxy": "Bitterthorn, Barra de Peso Muerto",
+      "category": "artifact",
+      "file": "assets/protein-proxy/cards/bitterthorn-nissas-animus.webp"
+    },
+    {
+      "index": 41,
+      "copy": 1,
+      "quantity": 1,
+      "original": "Currency Converter",
+      "proxy": "Conversor de Macros",
+      "category": "artifact",
+      "file": "assets/protein-proxy/cards/currency-converter.webp"
+    },
+    {
+      "index": 42,
+      "copy": 1,
+      "quantity": 1,
+      "original": "Fellwar Stone",
+      "proxy": "Piedra de Magnesio Fellwar",
+      "category": "artifact",
+      "file": "assets/protein-proxy/cards/fellwar-stone.webp"
+    },
+    {
+      "index": 43,
+      "copy": 1,
+      "quantity": 1,
+      "original": "Mind Stone",
+      "proxy": "Piedra de Concentración",
+      "category": "artifact",
+      "file": "assets/protein-proxy/cards/mind-stone.webp"
+    },
+    {
+      "index": 44,
+      "copy": 1,
+      "quantity": 1,
+      "original": "Patchwork Banner",
+      "proxy": "Estandarte de Series Completadas",
+      "category": "artifact",
+      "file": "assets/protein-proxy/cards/patchwork-banner.webp"
+    },
+    {
+      "index": 45,
+      "copy": 1,
+      "quantity": 1,
+      "original": "Perpetual Timepiece",
+      "proxy": "Cronómetro de Descanso Perpetuo",
+      "category": "artifact",
+      "file": "assets/protein-proxy/cards/perpetual-timepiece.webp"
+    },
+    {
+      "index": 46,
+      "copy": 1,
+      "quantity": 1,
+      "original": "Sol Ring",
+      "proxy": "Anillo de la Serie Solar",
+      "category": "artifact",
+      "file": "assets/protein-proxy/cards/sol-ring.webp"
+    },
+    {
+      "index": 47,
+      "copy": 1,
+      "quantity": 1,
+      "original": "Staff of the Storyteller",
+      "proxy": "Bastón del Entrenador de Historias",
+      "category": "artifact",
+      "file": "assets/protein-proxy/cards/staff-of-the-storyteller.webp"
+    },
+    {
+      "index": 48,
+      "copy": 1,
+      "quantity": 1,
+      "original": "Advanced Reconstruction",
+      "proxy": "Reconstrucción Muscular Avanzada",
+      "category": "enchantment",
+      "file": "assets/protein-proxy/cards/advanced-reconstruction.webp"
+    },
+    {
+      "index": 49,
+      "copy": 1,
+      "quantity": 1,
+      "original": "Monologue Tax",
+      "proxy": "Impuesto al Monólogo del GymBro",
+      "category": "enchantment",
+      "file": "assets/protein-proxy/cards/monologue-tax.webp"
+    },
+    {
+      "index": 50,
+      "copy": 1,
+      "quantity": 1,
+      "original": "Primary Research",
+      "proxy": "Investigación Primaria de Macros",
+      "category": "enchantment",
+      "file": "assets/protein-proxy/cards/primary-research.webp"
+    },
+    {
+      "index": 51,
+      "copy": 1,
+      "quantity": 1,
+      "original": "Tocasia's Welcome",
+      "proxy": "Bienvenida al Gym de Tocasia",
+      "category": "enchantment",
+      "file": "assets/protein-proxy/cards/tocasias-welcome.webp"
+    },
+    {
+      "index": 52,
+      "copy": 1,
+      "quantity": 1,
+      "original": "Lorehold Charm",
+      "proxy": "Encanto Proteico de Lorehold",
+      "category": "instant",
+      "file": "assets/protein-proxy/cards/lorehold-charm.webp"
+    },
+    {
+      "index": 53,
+      "copy": 1,
+      "quantity": 1,
+      "original": "Path to Exile",
+      "proxy": "Camino al Día de Descanso",
+      "category": "instant",
+      "file": "assets/protein-proxy/cards/path-to-exile.webp"
+    },
+    {
+      "index": 54,
+      "copy": 1,
+      "quantity": 1,
+      "original": "Swords to Plowshares",
+      "proxy": "Espadas por Barras Olímpicas",
+      "category": "instant",
+      "file": "assets/protein-proxy/cards/swords-to-plowshares.webp"
+    },
+    {
+      "index": 55,
+      "copy": 1,
+      "quantity": 1,
+      "original": "Ceaseless Conflict",
+      "proxy": "Serie sin Descanso",
+      "category": "sorcery",
+      "file": "assets/protein-proxy/cards/ceaseless-conflict.webp"
+    },
+    {
+      "index": 56,
+      "copy": 1,
+      "quantity": 1,
+      "original": "Faithless Looting",
+      "proxy": "Saqueo sin Rutina",
+      "category": "sorcery",
+      "file": "assets/protein-proxy/cards/faithless-looting.webp"
+    },
+    {
+      "index": 57,
+      "copy": 1,
+      "quantity": 1,
+      "original": "Fateful Tempest",
+      "proxy": "Tormenta de Leche Predestinada",
+      "category": "sorcery",
+      "file": "assets/protein-proxy/cards/fateful-tempest.webp"
+    },
+    {
+      "index": 58,
+      "copy": 1,
+      "quantity": 1,
+      "original": "Rip Apart",
+      "proxy": "Romper Fibras",
+      "category": "sorcery",
+      "file": "assets/protein-proxy/cards/rip-apart.webp"
+    },
+    {
+      "index": 59,
+      "copy": 1,
+      "quantity": 1,
+      "original": "Secret Rendezvous",
+      "proxy": "Batido Secreto Postentreno",
+      "category": "sorcery",
+      "file": "assets/protein-proxy/cards/secret-rendezvous.webp"
+    },
+    {
+      "index": 60,
+      "copy": 1,
+      "quantity": 1,
+      "original": "Seize the Spoils",
+      "proxy": "Apropiarse de las Ganancias",
+      "category": "sorcery",
+      "file": "assets/protein-proxy/cards/seize-the-spoils.webp"
+    },
+    {
+      "index": 61,
+      "copy": 1,
+      "quantity": 1,
+      "original": "Sevinne's Reclamation",
+      "proxy": "Recuperación Activa de Sevinne",
+      "category": "sorcery",
+      "file": "assets/protein-proxy/cards/sevinnes-reclamation.webp"
+    },
+    {
+      "index": 62,
+      "copy": 1,
+      "quantity": 1,
+      "original": "Tragic Arrogance",
+      "proxy": "Ego Lifting Trágico",
+      "category": "sorcery",
+      "file": "assets/protein-proxy/cards/tragic-arrogance.webp"
+    },
+    {
+      "index": 63,
+      "copy": 1,
+      "quantity": 1,
+      "original": "Wave of Reckoning",
+      "proxy": "Oleada de Repeticiones",
+      "category": "sorcery",
+      "file": "assets/protein-proxy/cards/wave-of-reckoning.webp"
+    },
+    {
+      "index": 64,
+      "copy": 1,
+      "quantity": 1,
+      "original": "Battlefield Forge",
+      "proxy": "Forja del Campo de Entrenamiento",
+      "category": "land",
+      "file": "assets/protein-proxy/cards/battlefield-forge.webp"
+    },
+    {
+      "index": 65,
+      "copy": 1,
+      "quantity": 1,
+      "original": "Clifftop Retreat",
+      "proxy": "Retiro de Recuperación en la Cima",
+      "category": "land",
+      "file": "assets/protein-proxy/cards/clifftop-retreat.webp"
+    },
+    {
+      "index": 66,
+      "copy": 1,
+      "quantity": 1,
+      "original": "Command Tower",
+      "proxy": "Torre del Entrenador",
+      "category": "land",
+      "file": "assets/protein-proxy/cards/command-tower.webp"
+    },
+    {
+      "index": 67,
+      "copy": 1,
+      "quantity": 1,
+      "original": "Emeria, the Sky Ruin",
+      "proxy": "Emeria, Ruina del Gym Celeste",
+      "category": "land",
+      "file": "assets/protein-proxy/cards/emeria-the-sky-ruin.webp"
+    },
+    {
+      "index": 68,
+      "copy": 1,
+      "quantity": 1,
+      "original": "Exotic Orchard",
+      "proxy": "Huerto de Batidos Exóticos",
+      "category": "land",
+      "file": "assets/protein-proxy/cards/exotic-orchard.webp"
+    },
+    {
+      "index": 69,
+      "copy": 1,
+      "quantity": 1,
+      "original": "Fabled Passage",
+      "proxy": "Pasillo del Récord Legendario",
+      "category": "land",
+      "file": "assets/protein-proxy/cards/fabled-passage.webp"
+    },
+    {
+      "index": 70,
+      "copy": 1,
+      "quantity": 1,
+      "original": "Fields of Strife",
+      "proxy": "Campos de Sobrecarga Progresiva",
+      "category": "land",
+      "file": "assets/protein-proxy/cards/fields-of-strife.webp"
+    },
+    {
+      "index": 71,
+      "copy": 1,
+      "quantity": 1,
+      "original": "Furycalm Snarl",
+      "proxy": "Gimnasio Furia-Calma",
+      "category": "land",
+      "file": "assets/protein-proxy/cards/furycalm-snarl.webp"
+    },
+    {
+      "index": 72,
+      "copy": 1,
+      "quantity": 1,
+      "original": "Glittering Massif",
+      "proxy": "Macizo de Magnesio Brillante",
+      "category": "land",
+      "file": "assets/protein-proxy/cards/glittering-massif.webp"
+    },
+    {
+      "index": 73,
+      "copy": 1,
+      "quantity": 1,
+      "original": "Lorehold Campus",
+      "proxy": "Campus Lorehold Fitness",
+      "category": "land",
+      "file": "assets/protein-proxy/cards/lorehold-campus.webp"
+    },
+    {
+      "index": 74,
+      "copy": 1,
+      "quantity": 1,
+      "original": "Lotus Field",
+      "proxy": "Campo de Loto Proteico",
+      "category": "land",
+      "file": "assets/protein-proxy/cards/lotus-field.webp"
+    },
+    {
+      "index": 75,
+      "copy": 1,
+      "quantity": 1,
+      "original": "Mistveil Plains",
+      "proxy": "Llanuras del Velo de Leche",
+      "category": "land",
+      "file": "assets/protein-proxy/cards/mistveil-plains.webp"
+    },
+    {
+      "index": 76,
+      "copy": 1,
+      "quantity": 6,
+      "original": "Mountain",
+      "proxy": "Montaña de Proteína",
+      "category": "land",
+      "file": "assets/protein-proxy/cards/mountain-1.webp"
+    },
+    {
+      "index": 77,
+      "copy": 2,
+      "quantity": 6,
+      "original": "Mountain",
+      "proxy": "Montaña de Proteína",
+      "category": "land",
+      "file": "assets/protein-proxy/cards/mountain-2.webp"
+    },
+    {
+      "index": 78,
+      "copy": 3,
+      "quantity": 6,
+      "original": "Mountain",
+      "proxy": "Montaña de Proteína",
+      "category": "land",
+      "file": "assets/protein-proxy/cards/mountain-3.webp"
+    },
+    {
+      "index": 79,
+      "copy": 4,
+      "quantity": 6,
+      "original": "Mountain",
+      "proxy": "Montaña de Proteína",
+      "category": "land",
+      "file": "assets/protein-proxy/cards/mountain-4.webp"
+    },
+    {
+      "index": 80,
+      "copy": 5,
+      "quantity": 6,
+      "original": "Mountain",
+      "proxy": "Montaña de Proteína",
+      "category": "land",
+      "file": "assets/protein-proxy/cards/mountain-5.webp"
+    },
+    {
+      "index": 81,
+      "copy": 6,
+      "quantity": 6,
+      "original": "Mountain",
+      "proxy": "Montaña de Proteína",
+      "category": "land",
+      "file": "assets/protein-proxy/cards/mountain-6.webp"
+    },
+    {
+      "index": 82,
+      "copy": 1,
+      "quantity": 11,
+      "original": "Plains",
+      "proxy": "Llanura Desnatada",
+      "category": "land",
+      "file": "assets/protein-proxy/cards/plains-1.webp"
+    },
+    {
+      "index": 83,
+      "copy": 2,
+      "quantity": 11,
+      "original": "Plains",
+      "proxy": "Llanura Desnatada",
+      "category": "land",
+      "file": "assets/protein-proxy/cards/plains-2.webp"
+    },
+    {
+      "index": 84,
+      "copy": 3,
+      "quantity": 11,
+      "original": "Plains",
+      "proxy": "Llanura Desnatada",
+      "category": "land",
+      "file": "assets/protein-proxy/cards/plains-3.webp"
+    },
+    {
+      "index": 85,
+      "copy": 4,
+      "quantity": 11,
+      "original": "Plains",
+      "proxy": "Llanura Desnatada",
+      "category": "land",
+      "file": "assets/protein-proxy/cards/plains-4.webp"
+    },
+    {
+      "index": 86,
+      "copy": 5,
+      "quantity": 11,
+      "original": "Plains",
+      "proxy": "Llanura Desnatada",
+      "category": "land",
+      "file": "assets/protein-proxy/cards/plains-5.webp"
+    },
+    {
+      "index": 87,
+      "copy": 6,
+      "quantity": 11,
+      "original": "Plains",
+      "proxy": "Llanura Desnatada",
+      "category": "land",
+      "file": "assets/protein-proxy/cards/plains-6.webp"
+    },
+    {
+      "index": 88,
+      "copy": 7,
+      "quantity": 11,
+      "original": "Plains",
+      "proxy": "Llanura Desnatada",
+      "category": "land",
+      "file": "assets/protein-proxy/cards/plains-7.webp"
+    },
+    {
+      "index": 89,
+      "copy": 8,
+      "quantity": 11,
+      "original": "Plains",
+      "proxy": "Llanura Desnatada",
+      "category": "land",
+      "file": "assets/protein-proxy/cards/plains-8.webp"
+    },
+    {
+      "index": 90,
+      "copy": 9,
+      "quantity": 11,
+      "original": "Plains",
+      "proxy": "Llanura Desnatada",
+      "category": "land",
+      "file": "assets/protein-proxy/cards/plains-9.webp"
+    },
+    {
+      "index": 91,
+      "copy": 10,
+      "quantity": 11,
+      "original": "Plains",
+      "proxy": "Llanura Desnatada",
+      "category": "land",
+      "file": "assets/protein-proxy/cards/plains-10.webp"
+    },
+    {
+      "index": 92,
+      "copy": 11,
+      "quantity": 11,
+      "original": "Plains",
+      "proxy": "Llanura Desnatada",
+      "category": "land",
+      "file": "assets/protein-proxy/cards/plains-11.webp"
+    },
+    {
+      "index": 93,
+      "copy": 1,
+      "quantity": 1,
+      "original": "Radiant Summit",
+      "proxy": "Cumbre del Récord Radiante",
+      "category": "land",
+      "file": "assets/protein-proxy/cards/radiant-summit.webp"
+    },
+    {
+      "index": 94,
+      "copy": 1,
+      "quantity": 1,
+      "original": "Rugged Prairie",
+      "proxy": "Pradera de Pesas Rústicas",
+      "category": "land",
+      "file": "assets/protein-proxy/cards/rugged-prairie.webp"
+    },
+    {
+      "index": 95,
+      "copy": 1,
+      "quantity": 1,
+      "original": "Sacred Peaks",
+      "proxy": "Picos del Whey Sagrado",
+      "category": "land",
+      "file": "assets/protein-proxy/cards/sacred-peaks.webp"
+    },
+    {
+      "index": 96,
+      "copy": 1,
+      "quantity": 1,
+      "original": "Study Hall",
+      "proxy": "Aula de Anatomía Aplicada",
+      "category": "land",
+      "file": "assets/protein-proxy/cards/study-hall.webp"
+    },
+    {
+      "index": 97,
+      "copy": 1,
+      "quantity": 1,
+      "original": "Sunscorched Divide",
+      "proxy": "Divisoria del Cardio Solar",
+      "category": "land",
+      "file": "assets/protein-proxy/cards/sunscorched-divide.webp"
+    },
+    {
+      "index": 98,
+      "copy": 1,
+      "quantity": 1,
+      "original": "Temple of Triumph",
+      "proxy": "Templo del Récord Personal",
+      "category": "land",
+      "file": "assets/protein-proxy/cards/temple-of-triumph.webp"
+    },
+    {
+      "index": 99,
+      "copy": 1,
+      "quantity": 1,
+      "original": "Terramorphic Expanse",
+      "proxy": "Expansión del Gimnasio Terramórfico",
+      "category": "land",
+      "file": "assets/protein-proxy/cards/terramorphic-expanse.webp"
+    },
+    {
+      "index": 100,
+      "copy": 1,
+      "quantity": 1,
+      "original": "Turbulent Steppe",
+      "proxy": "Estepa del Batido Agitado",
+      "category": "land",
+      "file": "assets/protein-proxy/cards/turbulent-steppe.webp"
+    }
+  ]
+}

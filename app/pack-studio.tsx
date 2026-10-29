@@ -2,20 +2,20 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
-  Archive, ArrowRight, Ban, BarChart3, Check, ChevronDown, ChevronLeft, ChevronRight, CirclePlus, Crown,
-  Eye, EyeOff, Filter, Grid2X2, Hand, Heart, LandPlot, Layers3, Library, List, Minus, Move, PackageOpen, Plus, RotateCcw, RotateCw, Scissors,
+  Archive, ArrowRight, Ban, BarChart3, Check, ChevronDown, ChevronLeft, ChevronRight, CirclePlus, Crown, Download,
+  Eye, EyeOff, Filter, Grid2X2, Hand, Heart, Images, LandPlot, Layers3, Library, List, Minus, Move, PackageOpen, Plus, RotateCcw, RotateCw, Scissors,
   Search, ShieldCheck, Shuffle, SkipForward, Sparkles, Skull, Swords, UserRound, WandSparkles, X, Zap, ZoomIn,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { getBoosterProducts, loadSet, loadSetCatalog, simulateBooster, type BoosterProduct, type MtgSetData, type MtgSetSummary } from '@/lib/mtgjson';
-import { loadProteinProxyMetadata, proteinProxyDeck } from '@/lib/protein-proxy-deck';
+import { loadProteinProxyMetadata, proteinProxyCardImage, proteinProxyDeck } from '@/lib/protein-proxy-deck';
 
 type AppView = 'packs' | 'collection' | 'builder' | 'playtest';
 type ViewMode = 'automatic' | 'stack' | 'grid';
 type DeckFormat = 'commander' | 'standard' | 'modern' | 'legacy' | 'pauper' | 'limited';
-type ProxyDetails = { originalName: string; oracleText: string; flavor: string; atlas: string; atlasIndex: number; deck: string };
+type ProxyDetails = { originalName: string; oracleText: string; flavor: string; images: string[]; deck: string };
 type Card = { id?: string; uuid?: string; name: string; rarity: string; slot: string; set: string; setName: string; image: string; foil: boolean; type: string; mana: string; color: string; tags: string[]; types?: string[]; subtypes?: string[]; supertypes?: string[]; manaValue?: number; power?: string; toughness?: string; qty: number; proxy?: ProxyDetails };
 
 const image = (name: string) => `https://api.scryfall.com/cards/named?format=image&version=normal&exact=${encodeURIComponent(name)}`;
@@ -34,25 +34,14 @@ const cards: Card[] = [
 
 const proxyCategoryType: Record<string, string> = { commander: 'Legendary Planeswalker — Quintorius', creature: 'Creature', artifact: 'Artifact', enchantment: 'Enchantment', instant: 'Instant', sorcery: 'Sorcery', land: 'Land' };
 const proxyCategoryTypes: Record<string, string[]> = { commander: ['Planeswalker'], creature: ['Creature'], artifact: ['Artifact'], enchantment: ['Enchantment'], instant: ['Instant'], sorcery: ['Sorcery'], land: ['Land'] };
-const proxyAtlasCursors = [0, 0, 0, 0, 0, 0];
-function claimProxyArt(sheet: number) { const atlasIndex = proxyAtlasCursors[sheet]++; return { atlas: `assets/proxy-atlas/atlas-${sheet}.webp`, atlasIndex }; }
-function proxyArtFor(seed: (typeof proteinProxyDeck)[number]) {
-  if (seed.category === 'commander' || seed.original.startsWith('Quintorius')) return claimProxyArt(1);
-  if (seed.spirit) return claimProxyArt(2);
-  if (seed.category === 'creature') return proxyAtlasCursors[3] < 20 ? claimProxyArt(3) : claimProxyArt(1);
-  if (seed.category === 'artifact' || seed.category === 'enchantment') return proxyAtlasCursors[4] < 20 ? claimProxyArt(4) : claimProxyArt(1);
-  if (seed.category === 'instant' || seed.category === 'sorcery') return proxyAtlasCursors[5] < 20 ? claimProxyArt(5) : claimProxyArt(4);
-  const available = [5, 4, 1, 2, 3].find((sheet) => proxyAtlasCursors[sheet] < 20) ?? 5;
-  return claimProxyArt(available);
-}
-const proteinProxyCards: Card[] = proteinProxyDeck.map((seed, index) => { const art = proxyArtFor(seed); return ({
+const proteinProxyCards: Card[] = proteinProxyDeck.map((seed, index) => { const images = Array.from({ length: seed.quantity ?? 1 }, (_, copy) => proteinProxyCardImage(seed, copy + 1)); return ({
   uuid: `lorehold-protein:${seed.original}`,
   name: seed.proxy,
   rarity: seed.category === 'commander' ? 'Mítica' : seed.category === 'land' ? 'Común' : 'Proxy',
   slot: seed.category === 'commander' ? 'Comandante proxy' : 'Lorehold Proteína+',
   set: `LHP · ${String(index + 1).padStart(3, '0')}`,
   setName: 'Lorehold Proteína+',
-  image: art.atlas,
+  image: images[0],
   foil: seed.category === 'commander',
   type: seed.spirit ? 'Creature — GymBro (Spirit)' : proxyCategoryType[seed.category],
   mana: '—',
@@ -63,8 +52,10 @@ const proteinProxyCards: Card[] = proteinProxyDeck.map((seed, index) => { const 
   supertypes: seed.category === 'commander' || seed.original.startsWith('Quintorius') ? ['Legendary'] : [],
   manaValue: 0,
   qty: seed.quantity ?? 1,
-  proxy: { originalName: seed.original, oracleText: seed.category === 'commander' ? 'Siempre que una o más cartas salgan de tu cementerio, crea una ficha de criatura GymBro (Spirit) roja y blanca 3/2.\n+1: Puedes descartar una carta. Si lo haces, roba dos cartas y luego muele una carta.\n−4: Los GymBros (Spirits) que controlas ganan dañar dos veces y vigilancia hasta el final del turno.\nQuintorius puede ser tu comandante.' : `Proxy temático de ${seed.original}. Conserva el texto de reglas de la carta original.`, flavor: seed.flavor, atlas: art.atlas, atlasIndex: art.atlasIndex, deck: 'Lorehold Proteína+ — GymBros del Más Allá' },
+  proxy: { originalName: seed.original, oracleText: seed.category === 'commander' ? 'Siempre que una o más cartas salgan de tu cementerio, crea una ficha de criatura GymBro (Spirit) roja y blanca 3/2.\n+1: Puedes descartar una carta. Si lo haces, roba dos cartas y luego muele una carta.\n−4: Los GymBros (Spirits) que controlas ganan dañar dos veces y vigilancia hasta el final del turno.\nQuintorius puede ser tu comandante.' : `Proxy temático de ${seed.original}. Conserva el texto de reglas de la carta original.`, flavor: seed.flavor, images, deck: 'Lorehold Proteína+ — GymBros del Más Allá' },
 }); });
+
+const proteinProxyGalleryCards: Card[] = proteinProxyCards.flatMap((card) => (card.proxy?.images ?? [card.image]).map((imagePath, index) => ({ ...card, uuid: `${card.uuid}:copy-${index + 1}`, image: imagePath, qty: 1 })));
 
 const startingLibrary = [...proteinProxyCards, ...cards];
 
@@ -462,24 +453,14 @@ function colorMatches(card: Card, value: string) {
 
 function CardArtwork({ card, className = '', faceDown = false }: { card: Card; className?: string; faceDown?: boolean }) {
   if (faceDown) return <img className={`card-artwork ${className}`} src="assets/magic-card-back.png" alt="Reverso original de Magic: The Gathering" />;
-  if (!card.proxy) return <img className={`card-artwork ${className}`} src={card.image} alt={card.name} />;
-  const column = card.proxy.atlasIndex % 5;
-  const row = Math.floor(card.proxy.atlasIndex / 5);
-  return <div className={`card-artwork proxy-card ${className}`} role="img" aria-label={`${card.name}, proxy de ${card.proxy.originalName}`}>
-    <div className="proxy-card-frame">
-      <header><strong>{card.name}</strong><span>{card.mana}</span></header>
-      <div className="proxy-card-illustration" style={{ '--proxy-atlas': `url("${card.proxy.atlas}")`, '--proxy-x': `${column * 25}%`, '--proxy-y': `${row * (100 / 3)}%` } as React.CSSProperties}><i>Leche Mercadona Proteína+</i></div>
-      <div className="proxy-card-type"><strong>{card.type}</strong><span>LHP</span></div>
-      <div className="proxy-card-rules"><p>{card.proxy.oracleText}</p><em>{card.proxy.flavor}</em></div>
-      <footer><span>Proxy de: {card.proxy.originalName}</span>{card.power && card.toughness && <b>{card.power}/{card.toughness}</b>}</footer>
-    </div>
-  </div>;
+  return <img className={`card-artwork ${card.proxy ? 'proxy-card-image' : ''} ${className}`} src={card.image} alt={card.proxy ? `${card.name}, proxy temático de ${card.proxy.originalName}` : card.name} />;
 }
 
 function CollectionView({ search, setSearch, cards, collection, setCollection, addToDeck, goBuilder, loadProxyDeck }: { search: string; setSearch: (value: string) => void; cards: Card[]; collection: Record<string, number>; setCollection: React.Dispatch<React.SetStateAction<Record<string, number>>>; addToDeck: (card: Card) => void; goBuilder: () => void; loadProxyDeck: () => void }) {
   const [displayMode, setDisplayMode] = useState<'grid' | 'list'>('grid');
   const [zoomedCard, setZoomedCard] = useState<Card | null>(null);
   const [zoomFaceDown, setZoomFaceDown] = useState(false);
+  const [showProxyGallery, setShowProxyGallery] = useState(false);
   const [faceDownCards, setFaceDownCards] = useState<Set<string>>(new Set());
   const [sortBy, setSortBy] = useState<'recent' | 'name' | 'quantity' | 'set' | 'rarity'>('recent');
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -495,6 +476,18 @@ function CollectionView({ search, setSearch, cards, collection, setCollection, a
     if (savedMode === 'grid' || savedMode === 'list') setDisplayMode(savedMode);
   }, []);
   useEffect(() => { window.localStorage.setItem('vaultforge:collection-view', displayMode); }, [displayMode]);
+  useEffect(() => {
+    if (!zoomedCard && !showProxyGallery) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+      if (zoomedCard) setZoomedCard(null);
+      else setShowProxyGallery(false);
+    };
+    window.addEventListener('keydown', closeOnEscape);
+    return () => { document.body.style.overflow = previousOverflow; window.removeEventListener('keydown', closeOnEscape); };
+  }, [showProxyGallery, zoomedCard]);
 
   const groups = useMemo(() => {
     const grouped = new Map<string, CollectionGroup>();
@@ -547,7 +540,7 @@ function CollectionView({ search, setSearch, cards, collection, setCollection, a
 
   return <div className="mx-auto max-w-[1500px] px-4 py-7 sm:px-7">
     <div className="flex flex-wrap items-end justify-between gap-5"><div><p className="eyebrow">Biblioteca personal</p><h1 className="mt-1 font-display text-4xl font-semibold">Mi colección</h1><p className="mt-2 text-sm text-stone-500">Copias agrupadas con metadatos de edición, color, tipo, subtipo y rareza.</p></div><Button onClick={goBuilder} className="h-10 bg-amber-300 font-bold text-[#17150e] hover:bg-amber-200"><Layers3 /> Construir un mazo</Button></div>
-    <div className="proxy-deck-banner"><div><Badge>LHP · 100 CARTAS</Badge><strong>Lorehold Proteína+ — GymBros del Más Allá</strong><span>Proxy temático completo de Lorehold Spirit inspirado en Leche Mercadona Proteína+. Busca “Lorehold Proteína+” o filtra por la edición LHP.</span></div><div><b>100</b><span>cartas añadidas</span><button onClick={loadProxyDeck}><Layers3 />Cargar mazo</button></div></div>
+    <div className="proxy-deck-banner"><div><Badge>LHP · 100 CARTAS</Badge><strong>Lorehold Proteína+ — GymBros del Más Allá</strong><span>100 imágenes terminadas: 85 cartas únicas y 15 variantes de tierras básicas. Cada proxy es un archivo individual listo para ampliar o descargar.</span></div><div><b>100</b><span>imágenes proxy</span><div className="proxy-deck-actions"><button onClick={() => setShowProxyGallery(true)}><Images />Ver las 100</button><button onClick={loadProxyDeck}><Layers3 />Cargar mazo</button></div></div></div>
     <div className="stats-grid mt-7"><Stat value={String(total)} label="Cartas totales" detail={`${groups.length} impresiones únicas`} /><Stat value={String(groups.length)} label="Cartas agrupadas" detail={`de ${setCount} ediciones`} /><Stat value={String(foilCount)} label="Cartas foil" detail={`${total ? Math.round((foilCount / total) * 100) : 0}% del total`} /><Stat value={String(mythicCount)} label="Míticas" detail={`${legendaryCount} legendarias únicas`} /></div>
     <div className="toolbar mt-7"><div className="search-field"><Search /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Buscar nombre, edición, tipo, subtipo o keyword…" /><kbd>⌘ K</kbd></div><Button variant="outline" onClick={() => setFiltersOpen((value) => !value)} className="border-white/10 bg-white/[.025] text-stone-300"><Filter />Filtros{activeFilterCount > 0 && <Badge className="filter-count">{activeFilterCount}</Badge>}</Button><div className="collection-view-toggle" aria-label="Vista de colección"><button onClick={() => setDisplayMode('grid')} data-active={displayMode === 'grid'} aria-label="Vista en grilla"><Grid2X2 /></button><button onClick={() => setDisplayMode('list')} data-active={displayMode === 'list'} aria-label="Vista en lista"><List /></button></div><div className="native-select-wrap collection-sort"><select value={sortBy} onChange={(event) => setSortBy(event.target.value as typeof sortBy)} aria-label="Ordenar colección"><option value="recent">Más recientes</option><option value="name">Nombre</option><option value="quantity">Cantidad</option><option value="set">Edición</option><option value="rarity">Rareza</option></select><ChevronDown /></div></div>
     <div className="collection-layout mt-5">
@@ -556,7 +549,8 @@ function CollectionView({ search, setSearch, cards, collection, setCollection, a
         {visibleGroups.length === 0 ? <div className="collection-empty"><Filter /><strong>No hay cartas con estos filtros</strong><span>Prueba otra combinación o limpia los filtros activos.</span><button onClick={clearFilters}>Limpiar filtros</button></div> : displayMode === 'grid' ? <div className="collection-grid">{visibleGroups.map(({ key, card, quantity }) => { const faceDown = faceDownCards.has(key); return <article className="collection-card" key={key}><div className="card-image-wrap"><button className="collection-card-face" onClick={() => toggleFace(card)} aria-label={faceDown ? `Mostrar frente de ${card.name}` : `Dar vuelta ${card.name}`}><CardArtwork card={card} faceDown={faceDown} /></button>{card.foil && !faceDown && <span className="foil-sheen" />}<button onClick={() => openZoom(card)} className="collection-zoom" aria-label={`Ampliar ${card.name}`}><ZoomIn /></button><button onClick={() => addToDeck(card)} className="quick-add" aria-label={`Añadir ${card.name} al mazo`}><CirclePlus /></button><span className={`rarity rarity-${card.rarity.toLowerCase().replace('í','i')}`}>{card.rarity}</span><span className="copy-count">{quantity}×</span></div><div className="collection-card-info"><strong>{card.name}</strong><span>{card.proxy ? `Proxy de ${card.proxy.originalName}` : `${card.setName} · ${card.set.split(' · ')[1]}`}{card.foil ? ' · Foil' : ''}</span><div><small>{card.type} · {card.mana}</small><CollectionStepper quantity={quantity} onMinus={() => adjust(card, -1)} onPlus={() => adjust(card, 1)} /></div>{cardSubtypes(card).length > 0 && <div className="metadata-tags">{cardSubtypes(card).slice(0, 3).map((subtype) => <i key={subtype}>{subtype}</i>)}{isLegendary(card) && <i>Legendaria</i>}</div>}</div></article>; })}</div> : <div className="collection-list">{visibleGroups.map(({ key, card, quantity }) => <article className="collection-list-row" key={key}><button className="list-card-preview" onClick={() => openZoom(card)}><CardArtwork card={card} faceDown={faceDownCards.has(key)} /></button><div className="list-card-main"><strong>{card.name}</strong><span>{card.type}</span><small>{card.proxy ? `Proxy de ${card.proxy.originalName}` : card.tags.slice(0, 3).join(' · ') || 'Sin keywords detectadas'}</small></div><div className="list-meta"><small>Edición</small><strong>{setCode(card)} · {card.set.split(' · ')[1]}</strong><span>{card.setName}</span></div><div className="list-meta"><small>Rareza</small><strong>{card.rarity}{card.foil ? ' · Foil' : ''}</strong><span>{cardSubtypes(card).join(' · ') || 'Sin subtipo'}</span></div><div className="list-meta"><small>Maná</small><strong>{card.mana}</strong><span>MV {card.manaValue ?? '—'}{card.power && card.toughness ? ` · ${card.power}/${card.toughness}` : ''}</span></div><CollectionStepper quantity={quantity} onMinus={() => adjust(card, -1)} onPlus={() => adjust(card, 1)} /><button className="list-add-deck" onClick={() => addToDeck(card)} aria-label={`Añadir ${card.name} al mazo`}><Plus /></button></article>)}</div>}
       </section>
     </div>
-    {zoomedCard && <div className="card-zoom-overlay" role="dialog" aria-modal="true" aria-label={`Vista ampliada de ${zoomedCard.name}`} onClick={() => setZoomedCard(null)}><div className="card-zoom-panel collection-zoom-panel" onClick={(event) => event.stopPropagation()}><button className="card-zoom-close" onClick={() => setZoomedCard(null)} aria-label="Cerrar ampliación"><X /></button><button className="zoom-card-flip" onClick={() => setZoomFaceDown((value) => !value)} aria-label={zoomFaceDown ? 'Mostrar frente' : 'Mostrar reverso'}><RotateCw />{zoomFaceDown ? 'Mostrar frente' : 'Dar vuelta'}</button><CardArtwork card={zoomedCard} faceDown={zoomFaceDown} /><div><strong>{zoomFaceDown ? 'Reverso de Magic' : zoomedCard.name}</strong><span>{zoomFaceDown ? 'Pulsa “Mostrar frente” para volver a la carta.' : zoomedCard.proxy ? `Proxy temático de ${zoomedCard.proxy.originalName}` : `${zoomedCard.type} · ${zoomedCard.mana} · ${zoomedCard.rarity}`}</span></div></div></div>}
+    {showProxyGallery && <div className="proxy-gallery-overlay" role="dialog" aria-modal="true" aria-label="Galería de las 100 cartas proxy" onClick={() => setShowProxyGallery(false)}><section className="proxy-gallery-panel" onClick={(event) => event.stopPropagation()}><header><div><Badge>LHP · MAZO COMPLETO</Badge><h2>Las 100 imágenes proxy</h2><p>85 diseños únicos, seis Montañas y once Llanuras con arte individual. Pulsa cualquier carta para ampliarla, girarla o descargarla.</p></div><button onClick={() => setShowProxyGallery(false)} aria-label="Cerrar galería"><X /></button></header><div className="proxy-gallery-grid">{proteinProxyGalleryCards.map((card, index) => <button key={card.uuid} onClick={() => openZoom(card)} aria-label={`Ampliar proxy ${index + 1}: ${card.name}`}><CardArtwork card={card} /><span><b>{String(index + 1).padStart(3, '0')}</b>{card.name}</span></button>)}</div></section></div>}
+    {zoomedCard && <div className="card-zoom-overlay" role="dialog" aria-modal="true" aria-label={`Vista ampliada de ${zoomedCard.name}`} onClick={() => setZoomedCard(null)}><div className="card-zoom-panel collection-zoom-panel" onClick={(event) => event.stopPropagation()}><button className="card-zoom-close" onClick={() => setZoomedCard(null)} aria-label="Cerrar ampliación"><X /></button><div className="zoom-card-actions"><button className="zoom-card-flip" onClick={() => setZoomFaceDown((value) => !value)} aria-label={zoomFaceDown ? 'Mostrar frente' : 'Mostrar reverso'}><RotateCw />{zoomFaceDown ? 'Mostrar frente' : 'Dar vuelta'}</button>{zoomedCard.proxy && !zoomFaceDown && <a className="zoom-card-download" href={zoomedCard.image} download><Download />Descargar WebP</a>}</div><CardArtwork card={zoomedCard} faceDown={zoomFaceDown} /><div><strong>{zoomFaceDown ? 'Reverso de Magic' : zoomedCard.name}</strong><span>{zoomFaceDown ? 'Pulsa “Mostrar frente” para volver a la carta.' : zoomedCard.proxy ? `Proxy temático de ${zoomedCard.proxy.originalName}` : `${zoomedCard.type} · ${zoomedCard.mana} · ${zoomedCard.rarity}`}</span></div></div></div>}
   </div>;
 }
 
@@ -613,7 +607,10 @@ function PlaytestView({ cards, deck, format, goBuilder }: { cards: Card[]; deck:
   const [marker, setMarker] = useState('Vigilancia');
 
   function resetGame() {
-    const pieces = cards.flatMap((card) => Array.from({ length: Math.max(0, deck[card.name] ?? 0) }, (_, index) => makePiece(card, String(index))));
+    const pieces = cards.flatMap((card) => Array.from({ length: Math.max(0, deck[card.name] ?? 0) }, (_, index) => {
+      const variant = card.proxy?.images[index % card.proxy.images.length];
+      return makePiece(variant ? { ...card, image: variant } : card, String(index));
+    }));
     const commanderIndex = format === 'commander' ? pieces.findIndex((piece) => isLegendary(piece.card)) : -1;
     const commander = commanderIndex >= 0 ? pieces.splice(commanderIndex, 1) : [];
     const nextLibrary = shuffled(pieces);

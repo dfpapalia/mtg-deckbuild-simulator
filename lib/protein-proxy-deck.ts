@@ -9,6 +9,15 @@ export type ProteinProxySeed = {
   flavor: string;
 };
 
+export function proteinProxySlug(value: string) {
+  return value.normalize('NFKD').replace(/[\u0300-\u036f]/g, '').replace(/[’']/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+}
+
+export function proteinProxyCardImage(seed: Pick<ProteinProxySeed, 'original' | 'quantity'>, copy = 1) {
+  const suffix = (seed.quantity ?? 1) > 1 ? `-${copy}` : '';
+  return `assets/protein-proxy/cards/${proteinProxySlug(seed.original)}${suffix}.webp`;
+}
+
 const gymBro = 'La historia se escribe con leche, disciplina y una serie más.';
 const recovery = 'Los músculos desaparecen. Las ganancias ancestrales permanecen.';
 const study = 'El verdadero conocimiento comienza después del calentamiento.';
@@ -125,7 +134,10 @@ export type ProteinProxyMetadata = {
   keywords: string[];
 };
 
-const gymBroText = (value = '') => value.replace(/Spirits/g, 'GymBros (Spirits)').replace(/Spirit/g, 'GymBro (Spirit)');
+const gymBroText = (value = '') => value
+  .replace(/\bSpirits\b/g, '__GYMBRO_SPIRITS_PLURAL__')
+  .replace(/\bSpirit\b/g, 'GymBro (Spirit)')
+  .replace(/__GYMBRO_SPIRITS_PLURAL__/g, 'GymBros (Spirits)');
 
 export async function loadProteinProxyMetadata(): Promise<Map<string, ProteinProxyMetadata>> {
   const chunks: ProteinProxySeed[][] = [];
